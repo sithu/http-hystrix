@@ -1,0 +1,57 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+
+apply plugin: 'maven-publish'
+apply plugin: 'maven-publish-auth' // pull auth credentials from settings.xml
+
+apply from: 'dynamicVersion.gradle'
+
+sourceCompatibility = 1.7
+
+buildscript {
+    dependencies {
+        classpath("org.hibernate.build.gradle:gradle-maven-publish-auth:2.0.1")
+    }
+}
+
+jar {
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA'
+}
+
+dependencies {
+    compile 'com.netflix.hystrix:hystrix-core:1.5.3'
+    compile 'org.apache.httpcomponents:fluent-hc:4.5.2'
+    compile 'com.google.code.gson:gson:2.3.1'
+    testCompile 'junit:junit:4.12'
+}
+
+test {
+    useJUnit {
+       // excludeCategories '*IT.java'
+    }
+}
+// Define what should be published
+publishing {
+
+    // PubRepoConfigator comes from our qbms-ops custom gradle distribution
+    // in an init.d file
+    repositories(PubRepoConfigator)
+
+    publications {
+        mavenJava(MavenPublication) {
+            artifact jar
+        }
+    }
+}
+
+task uberJar(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'Http Hystrix Command Jar Example',
+                'Implementation-Version': version,
+                'Main-Class': 'com.intuit.payments.hystrix.howto.HttpHystrixCommandDemo'
+    }
+    baseName = project.name + '-all'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}

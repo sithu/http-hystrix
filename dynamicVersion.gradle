@@ -1,0 +1,35 @@
+// set things up for maven publishing
+
+def VERSION_FILE='version.txt'
+
+version=file(VERSION_FILE).text.trim()
+
+// Ideally this should get pushed into a release plugin. But the idea
+// is that if the 'release' property is NOT set (usually from the command
+// line, then append "-SNAPSHOT" to the version
+if (!System.properties['release']) {
+    version += "-SNAPSHOT"      
+}
+
+/*
+ * Print the version
+ */
+task printVersion {
+    doFirst {
+        println "$project.version"
+    }
+}
+
+// TODO - change implementation to do semantic versioning
+// instead of blindly trusting nextVersion to be set correctly
+task bumpVersion {
+	doFirst {
+		def nextVersion = System.properties['nextVersion']
+
+		if (!nextVersion) {
+			throw new Exception('must supply -DnextVersion=X.Y.Z')
+		}
+
+		 file(VERSION_FILE).text = nextVersion
+	}
+}
