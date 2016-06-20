@@ -15,7 +15,7 @@ import static org.junit.Assert.*;
 /**
  * Created by saung on 6/20/16.
  */
-public class HttpHystrixCommandTest {
+public class HttpHystrixCommandIT {
 
     @Test
     public void test() throws Exception {
