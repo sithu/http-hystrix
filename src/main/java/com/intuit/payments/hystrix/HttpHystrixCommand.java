@@ -39,20 +39,35 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
     private static final String X_REQUEST_SENT_AT = "x-request-sent-at";
 
     /**
-     *
+     * HTTP Response headers included in the response map.
+     */
+    private static final String HTTP_STATUS_CODE = "_http_status_code";
+    private static final String HTTP_STATUS_REASON = "_http_status_reason";
+    /**
+     * Array of {@link org.apache.http.Header} instances.
+     */
+    private static final String HTTP_RESPONSE_HEADERS = "_http_response_headers";
+
+    /**
+     * Hystrix execution timeout = Apache Http client timeouts + 1 millisecond so that underlying http client
+     * will timeout first before Hystrix.
      */
     private static final int TIMEOUT_BUFFER_BETWEEN_HTTP_CLEINT_AND_HYSTRIX = 1;
 
-    private static final String HTTP_STATUS_CODE = "_http_status_code";
-    private static final String HTTP_STATUS_REASON = "_http_status_reason";
-    private static final String HTTP_RESPONSE_HEADERS = "_http_response_headers";
-
+    /**
+     * Date format to return in the X_REQUEST_SENT_AT header
+     */
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
     /**
-     * URL to be called
+     * The request instance for the current request.
      */
     private final Request request;
+
+    /**
+     * Http method of the request.
+     */
+    private final Http http;
 
     /**
      * Optional request header map
@@ -60,19 +75,21 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
     private Map<String, String> headerMap;
 
     /**
-     * Form POST key-value pairs in a Map
+     * JSON key-value pairs in a String format.
      */
     private String jsonBody;
 
     /**
      * Default constructor
      *
-     * @param http - a {@link com.intuit.payments.hystrix.HttpHystrixCommand.Http} enum.
+     * @param http - a {@link com.intuit.payments.hystrix.HttpHystrixCommand.Http} method enum.
      * @param url - URL to be called.
      * @param hystrixCommandName - Hystrix command name.
      * @param hystrixGroupName - Hystrix command group name.
-     * @param connectionTimeoutInMilliSec - time to wait to get a connection.
-     * @param socketTimeoutInMilliSec - time to wait to send a request and receive a response.
+     * @param connectionTimeoutInMilliSec - Time to wait to get a connection.
+     * @param socketTimeoutInMilliSec - Time to wait to send a request and receive a response.
+     *
+     * Hystrix Timeout = (Http Connection Timeout + Http Socket Timeout) + 1
      */
     public HttpHystrixCommand(Http http,
                               String url,
@@ -86,20 +103,39 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
                 .andCommandPropertiesDefaults(Setter()
                         .withExecutionTimeoutInMilliseconds(connectionTimeoutInMilliSec + socketTimeoutInMilliSec
                         + TIMEOUT_BUFFER_BETWEEN_HTTP_CLEINT_AND_HYSTRIX)));
-        this.request = createRequest(http, url);
+        this.http = http;
+        this.request = createRequest(url);
         this.request.connectTimeout(connectionTimeoutInMilliSec).socketTimeout(socketTimeoutInMilliSec);
     }
 
+    /**
+     * Sets request headers. The "Accept" and "Content-Type" headers are auto-included.
+     *
+     * @param headerMap - Map of Http request headers.
+     * @return {@link HttpHystrixCommand} instance.
+     */
     public HttpHystrixCommand headers(Map<String, String> headerMap) {
         this.headerMap = headerMap;
         return this;
     }
 
+    /**
+     * Sets JSON representation of key-value map as body.
+     *
+     * @param bodyMap - Map of key-value pairs.
+     * @return {@link HttpHystrixCommand} instance.
+     */
     public HttpHystrixCommand body(Map<String, String> bodyMap) {
         this.jsonBody = Util.toJson(bodyMap);
         return this;
     }
 
+    /**
+     * Sets JSON representation of string body.
+     *
+     * @param body - JSON body string.
+     * @return {@link HttpHystrixCommand} instance.
+     */
     public HttpHystrixCommand body(String body) {
         this.jsonBody = body;
         return this;
@@ -126,12 +162,9 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
 
 
     /**
-     * Invokes a HTTP POST call.
-     *
-     * @throws IOException if something went wrong while making HTTP POST call to the
-     *                                                              endpoint.
+     * Sets request headers like "Accept" and others, and JSON body if not empty.
      */
-    private void setRequestHeadersAndBody() throws IOException {
+    private void setRequestHeadersAndBody() {
         request.addHeader(ACCEPT, APPLICATION_JSON.toString());
         request.addHeader(X_REQUEST_SENT_AT, DATE_FORMAT.format(Calendar.getInstance().getTime()));
 
@@ -142,11 +175,14 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
             }
         }
         if (jsonBody != null && jsonBody.trim().length() > 0) {
+            if (Http.GET.equals(http) || Http.HEAD.equals(http) || Http.OPTIONS.equals(http)) {
+                throw new IllegalStateException(http + " request cannot have a body payload");
+            }
             request.bodyString(jsonBody, ContentType.APPLICATION_JSON);
         }
     }
 
-    private Request createRequest(Http http, String url) {
+    private Request createRequest(String url) {
         switch (http) {
             case POST:
                 return Request.Post(url);
