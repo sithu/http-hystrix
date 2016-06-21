@@ -126,6 +126,7 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
      * @return {@link HttpHystrixCommand} instance.
      */
     public HttpHystrixCommand body(Map<String, String> bodyMap) {
+        checkHttpMethod();
         this.jsonBody = Util.toJson(bodyMap);
         return this;
     }
@@ -137,6 +138,7 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
      * @return {@link HttpHystrixCommand} instance.
      */
     public HttpHystrixCommand body(String body) {
+        checkHttpMethod();
         this.jsonBody = body;
         return this;
     }
@@ -175,10 +177,16 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
             }
         }
         if (jsonBody != null && jsonBody.trim().length() > 0) {
-            if (Http.GET.equals(http) || Http.HEAD.equals(http) || Http.OPTIONS.equals(http)) {
-                throw new IllegalStateException(http + " request cannot have a body payload");
-            }
             request.bodyString(jsonBody, ContentType.APPLICATION_JSON);
+        }
+    }
+
+    /**
+     * Checks whether the http method is GET, HEAD, or OPTIONS when setting the body.
+     */
+    private void checkHttpMethod() {
+        if (Http.GET.equals(http) || Http.HEAD.equals(http) || Http.OPTIONS.equals(http)) {
+            throw new IllegalStateException(http + " request cannot have a body payload");
         }
     }
 
