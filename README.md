@@ -36,3 +36,7 @@ dependencies {
    <version>0.0.1-SNAPSHOT</version>
 </dependency>
 ```
+
+### Jenkins 
+
+* [Publish to Nexus Maven Repo](http://paymentsjenkinsm1.corp.intuit.net/view/Product%20Views/view/gopayment/job/http-hystrix-commit/)
