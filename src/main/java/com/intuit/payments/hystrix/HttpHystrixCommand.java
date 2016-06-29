@@ -125,7 +125,7 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
      * @param bodyMap - Map of key-value pairs.
      * @return {@link HttpHystrixCommand} instance.
      */
-    public HttpHystrixCommand body(Map<String, String> bodyMap) {
+    public HttpHystrixCommand body(Map<String, Object> bodyMap) {
         checkHttpMethod();
         this.jsonBody = Util.toJson(bodyMap);
         return this;
