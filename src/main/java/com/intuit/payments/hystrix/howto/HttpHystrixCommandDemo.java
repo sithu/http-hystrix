@@ -57,7 +57,7 @@ public class HttpHystrixCommandDemo {
                 100000
         );
         // Set JSON Body
-        httpHystrixCommand.body(new HashMap<String, String>() {{
+        httpHystrixCommand.body(new HashMap<String, Object>() {{
             put("foo", "bar");
         }});
 
