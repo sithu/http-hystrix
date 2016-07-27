@@ -9,18 +9,27 @@ import com.intuit.payments.hystrix.util.Util;
 import com.netflix.hystrix.HystrixCommand;
 import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixCommandKey;
+import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.fluent.Request;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.*;
 import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Map;
 
 import static com.netflix.hystrix.HystrixCommandProperties.Setter;
 import static org.apache.http.HttpHeaders.ACCEPT;
+import static org.apache.http.HttpHeaders.CONTENT_TYPE;
 import static org.apache.http.entity.ContentType.APPLICATION_JSON;
 
 /**
@@ -33,6 +42,9 @@ import static org.apache.http.entity.ContentType.APPLICATION_JSON;
  * @since 6/16/16
  */
 public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
+    /** Logger instance */
+    private static final Logger LOG = LoggerFactory.getLogger(HttpHystrixCommand.class);
+
     /**
      * Additional HTTP Request Header to track network latency between this client and target server
      */
@@ -43,6 +55,11 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
      */
     private static final String HTTP_STATUS_CODE = "_http_status_code";
     private static final String HTTP_STATUS_REASON = "_http_status_reason";
+    /**
+     * This value is only set when the response string was invalid JSON.
+     */
+    private static final String HTTP_RAW_RESPONSE = "_http_raw_response";
+
     /**
      * Array of {@link org.apache.http.Header} instances.
      */
@@ -60,24 +77,35 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
     /**
-     * The request instance for the current request.
+     * The request URL string.
      */
-    private final Request request;
+    private final String url;
 
     /**
      * Http method of the request.
      */
     private final Http http;
 
+    /** Http client's connection timeout. */
+    private final int connectionTimeout;
+
+    /** Http client's socket timeout. */
+    private final int socketTimeout;
+
     /**
      * Optional request header map
      */
-    private Map<String, String> headerMap;
+    private Map<String, String> headerMap = new HashMap<>();
 
     /**
      * JSON key-value pairs in a String format.
      */
     private String jsonBody;
+
+    /**
+     * Log string builder
+     */
+    private StringBuilder logStr = new StringBuilder("type=http_hystrix;");
 
     /**
      * Default constructor
@@ -104,8 +132,22 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
                         .withExecutionTimeoutInMilliseconds(connectionTimeoutInMilliSec + socketTimeoutInMilliSec
                         + TIMEOUT_BUFFER_BETWEEN_HTTP_CLEINT_AND_HYSTRIX)));
         this.http = http;
-        this.request = createRequest(url);
-        this.request.connectTimeout(connectionTimeoutInMilliSec).socketTimeout(socketTimeoutInMilliSec);
+        this.url = url;
+        this.socketTimeout = socketTimeoutInMilliSec;
+        this.connectionTimeout = connectionTimeoutInMilliSec;
+        this.logStr.append("http=").append(http).append(";outURL=").append(url);
+    }
+
+    /**
+     * Sets a request header. The "Accept" and "Content-Type" headers are auto-included.
+     *
+     * @param name - a Http header name
+     * @param value - a Http header value
+     * @return {@link HttpHystrixCommand} instance.
+     */
+    public HttpHystrixCommand header(String name, String value) {
+        headerMap.put(name, value);
+        return this;
     }
 
     /**
@@ -115,30 +157,28 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
      * @return {@link HttpHystrixCommand} instance.
      */
     public HttpHystrixCommand headers(Map<String, String> headerMap) {
-        this.headerMap = headerMap;
+        headerMap.putAll(headerMap);
         return this;
     }
 
     /**
-     * Sets JSON representation of key-value map as body.
+     * Sets JSON representation of key-value map as body. POST, PUT, and PATCH only!
      *
      * @param bodyMap - Map of key-value pairs.
      * @return {@link HttpHystrixCommand} instance.
      */
     public HttpHystrixCommand body(Map<String, Object> bodyMap) {
-        checkHttpMethod();
         this.jsonBody = Util.toJson(bodyMap);
         return this;
     }
 
     /**
-     * Sets JSON representation of string body.
+     * Sets JSON representation of string body. POST, PUT, and PATCH only!
      *
      * @param body - JSON body string.
      * @return {@link HttpHystrixCommand} instance.
      */
     public HttpHystrixCommand body(String body) {
-        checkHttpMethod();
         this.jsonBody = body;
         return this;
     }
@@ -152,64 +192,121 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
     @Override
     @SuppressWarnings("unchecked")
     protected Map<String, Object> run() throws Exception {
-        setRequestHeadersAndBody();
-        final HttpResponse httpResponse = request.execute().returnResponse();
-        final Map<String, Object> responseMap = Util.fromJson(EntityUtils.toString(httpResponse.getEntity()));
-        responseMap.put(HTTP_STATUS_CODE, httpResponse.getStatusLine().getStatusCode());
-        responseMap.put(HTTP_STATUS_REASON, httpResponse.getStatusLine().getReasonPhrase());
-        responseMap.put(HTTP_RESPONSE_HEADERS, httpResponse.getAllHeaders());
+        try(CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpUriRequest httpUriRequest = newHttpRequest();
+            setRequestHeaders(httpUriRequest);
 
-        return responseMap;
+            HttpResponse httpResponse = httpClient.execute(httpUriRequest);
+
+            int statusCode  = httpResponse.getStatusLine().getStatusCode();
+            String statusReason = httpResponse.getStatusLine().getReasonPhrase();
+            logStr.append(";status=").append(statusCode).append(";reason=").append(statusReason);
+
+            String responseStr = EntityUtils.toString(httpResponse.getEntity(), "UTF-8");
+            if (LOG.isTraceEnabled()) {
+                for (String key : headerMap.keySet()) {
+                    logStr.append(";request_header=").append(key).append(":").append(headerMap.get(key));
+                }
+                LOG.trace(logStr.append(";request=").append(jsonBody).append(";response=").append(responseStr).toString());
+            }
+
+            if (statusCode >= 500) {
+                LOG.error(logStr.toString());
+                throw new RuntimeException("Failed to " + http + " the remote server. status=" + statusCode);
+            } else {
+                LOG.info(logStr.toString());
+            }
+
+            Map<String, Object> responseMap = new HashMap<>();
+            try {
+                responseMap = Util.fromJson(responseStr);
+            } catch (Exception ex) {
+                LOG.error(logStr.append("String-to-JSON parsing failed. Setting response in _http_raw_response field.")
+                        .toString(), ex);
+                responseMap.put(HTTP_RAW_RESPONSE, responseStr);
+            }
+
+            responseMap.put(HTTP_STATUS_CODE, statusCode);
+            responseMap.put(HTTP_STATUS_REASON, statusReason);
+            responseMap.put(HTTP_RESPONSE_HEADERS, httpResponse.getAllHeaders());
+
+            return responseMap;
+        }
     }
 
 
     /**
      * Sets request headers like "Accept" and others, and JSON body if not empty.
      */
-    private void setRequestHeadersAndBody() {
-        request.addHeader(ACCEPT, APPLICATION_JSON.toString());
-        request.addHeader(X_REQUEST_SENT_AT, DATE_FORMAT.format(Calendar.getInstance().getTime()));
+    private void setRequestHeaders(HttpUriRequest httpUriRequest) {
+        httpUriRequest.addHeader(ACCEPT, APPLICATION_JSON.toString());
+        httpUriRequest.addHeader(X_REQUEST_SENT_AT, DATE_FORMAT.format(Calendar.getInstance().getTime()));
 
-        // add optional headers to the request
-        if (headerMap != null) {
-            for (Map.Entry header : headerMap.entrySet()) {
-                request.addHeader(String.valueOf(header.getKey()), String.valueOf(header.getKey()));
-            }
-        }
-        if (jsonBody != null && jsonBody.trim().length() > 0) {
-            request.bodyString(jsonBody, ContentType.APPLICATION_JSON);
+        for (String key : headerMap.keySet()) {
+            httpUriRequest.addHeader(key, headerMap.get(key));
         }
     }
 
-    /**
-     * Checks whether the http method is GET, HEAD, or OPTIONS when setting the body.
-     */
-    private void checkHttpMethod() {
-        if (Http.GET.equals(http) || Http.HEAD.equals(http) || Http.OPTIONS.equals(http)) {
-            throw new IllegalStateException(http + " request cannot have a body payload");
-        }
-    }
+    private HttpUriRequest newHttpRequest() throws UnsupportedEncodingException {
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setSocketTimeout(socketTimeout)
+                .setConnectTimeout(connectionTimeout)
+                .build();
 
-    private Request createRequest(String url) {
         switch (http) {
             case POST:
-                return Request.Post(url);
-            case GET:
-                return Request.Get(url);
-            case DELETE:
-                return Request.Delete(url);
+                HttpPost httpPost = new HttpPost(url);
+                httpPost.setConfig(requestConfig);
+                if (jsonBody != null && jsonBody.length() > 0) {
+                    httpPost.addHeader(CONTENT_TYPE, ContentType.APPLICATION_JSON.toString());
+                    httpPost.setEntity(new StringEntity(jsonBody));
+                }
+                return httpPost;
+
             case PUT:
-                return Request.Put(url);
+                HttpPut httpPut = new HttpPut(url);
+                httpPut.setConfig(requestConfig);
+                if (jsonBody != null && jsonBody.length() > 0) {
+                    httpPut.addHeader(CONTENT_TYPE, ContentType.APPLICATION_JSON.toString());
+                    httpPut.setEntity(new StringEntity(jsonBody));
+                }
+                return httpPut;
+
+            case PATCH:
+                HttpPatch httpPatch = new HttpPatch(url);
+                httpPatch.setConfig(requestConfig);
+                if (jsonBody != null && jsonBody.length() > 0) {
+                    httpPatch.addHeader(CONTENT_TYPE, ContentType.APPLICATION_JSON.toString());
+                    httpPatch.setEntity(new StringEntity(jsonBody));
+                }
+                return httpPatch;
+
+            case GET:
+                HttpGet httpGet = new HttpGet(url);
+                httpGet.setConfig(requestConfig);
+                return httpGet;
+
+            case DELETE:
+                HttpDelete httpDelete = new HttpDelete(url);
+                httpDelete.setConfig(requestConfig);
+                return httpDelete;
+
             case HEAD:
-                return Request.Head(url);
+                HttpHead httpHead = new HttpHead(url);
+                httpHead.setConfig(requestConfig);
+                return httpHead;
+
             case OPTIONS:
-                return Request.Options(url);
+                HttpOptions httpOptions = new HttpOptions(url);
+                httpOptions.setConfig(requestConfig);
+                return httpOptions;
+
             default:
                 throw new IllegalArgumentException("Invalid Http method:" + http);
         }
     }
 
     public enum Http {
-        POST, GET, PUT, DELETE, HEAD, OPTIONS;
+        POST, GET, PUT, PATCH, DELETE, HEAD, OPTIONS
     }
 }
