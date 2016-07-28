@@ -39,6 +39,11 @@ public class HttpHystrixCommandDemo {
                 100000,
                 100000
         );
+        Map<String, String> headers = new HashMap<String, String>() {{
+            put("_foo1", "bar1");
+        }};
+        httpHystrixCommand.headers(headers);
+        httpHystrixCommand.header("_foo2", "bar2");
 
         Map<String, Object> response = httpHystrixCommand.execute();
         out.println("__Response__\n" +

@@ -9,6 +9,7 @@ import com.intuit.payments.hystrix.util.Util;
 import com.netflix.hystrix.HystrixCommand;
 import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixCommandKey;
+import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.*;
@@ -145,18 +146,18 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
      * @return {@link HttpHystrixCommand} instance.
      */
     public HttpHystrixCommand header(String name, String value) {
-        headerMap.put(name, value);
+        this.headerMap.put(name, value);
         return this;
     }
 
     /**
      * Sets request headers. The "Accept" and "Content-Type" headers are auto-included.
      *
-     * @param headerMap - Map of Http request headers.
+     * @param headers - Map of Http request headers.
      * @return {@link HttpHystrixCommand} instance.
      */
-    public HttpHystrixCommand headers(Map<String, String> headerMap) {
-        headerMap.putAll(headerMap);
+    public HttpHystrixCommand headers(Map<String, String> headers) {
+        this.headerMap.putAll(headers);
         return this;
     }
 
@@ -203,10 +204,17 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
 
             String responseStr = EntityUtils.toString(httpResponse.getEntity(), "UTF-8");
             if (LOG.isTraceEnabled()) {
-                for (String key : headerMap.keySet()) {
-                    logStr.append(";request_header=").append(key).append(":").append(headerMap.get(key));
+                logStr.append(";request_headers=");
+                for (Header header : httpUriRequest.getAllHeaders()) {
+                    logStr.append(header.getName()).append(":").append(header.getValue()).append(",");
                 }
-                LOG.trace(logStr.append(";request=").append(jsonBody).append(";response=").append(responseStr).toString());
+                logStr.append(";request_body=").append(jsonBody)
+                        .append(";response_headers=");
+                for (Header header : httpResponse.getAllHeaders()) {
+                    logStr.append(header.getName()).append(":").append(header.getValue()).append(",");
+                }
+                logStr.append(";response_body=").append(responseStr);
+                LOG.trace(logStr.toString());
             }
 
             if (statusCode >= 500) {
