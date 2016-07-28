@@ -21,8 +21,8 @@ import static org.apache.http.HttpHeaders.AUTHORIZATION;
  * @since 7/23/15
  */
 public class Util {
-    /** IAM Authentication HTTP header format */
-    private static final String AUTH_HEADER_FORMAT = "Intuit_IAM_Authentication intuit_appid=%s, intuit_app_secret=%s";
+    /** IAM Authentication HTTP header format. QBO V3 does NOT like having space between app id and app secret! */
+    private static final String AUTH_HEADER_FORMAT = "Intuit_IAM_Authentication intuit_appid=%s,intuit_app_secret=%s";
 
     /** Gson instance */
     private static final Gson gson = new Gson();
@@ -49,13 +49,15 @@ public class Util {
      * @return Map of HTTP headers.
      */
     public static Map<String, String> requestHeaders(String iamAuthHeader, String companyAuthId, String requestId) {
-        checkStringIsNotBlank(iamAuthHeader, "");
-        checkStringIsNotBlank(companyAuthId, "");
-        checkStringIsNotBlank(requestId, "");
-        final Map<String, String> headerMap = new HashMap<String, String>();
+        checkStringIsNotBlank(iamAuthHeader, "Authorization header value is required");
+        final Map<String, String> headerMap = new HashMap<>();
         headerMap.put(AUTHORIZATION, iamAuthHeader);
-        headerMap.put("Company-Id", companyAuthId);
-        headerMap.put("Request-Id", requestId);
+        if (companyAuthId != null && companyAuthId.length() > 0) {
+            headerMap.put("Company-Id", companyAuthId);
+        }
+        if (requestId != null && requestId.length() > 0) {
+            headerMap.put("Request-Id", requestId);
+        }
         return headerMap;
     }
 
