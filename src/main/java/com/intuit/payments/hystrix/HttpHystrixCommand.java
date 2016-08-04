@@ -214,7 +214,6 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
                     logStr.append(header.getName()).append(":").append(header.getValue()).append(",");
                 }
                 logStr.append(";response_body=").append(responseStr);
-                LOG.trace(logStr.toString());
             }
 
             if (statusCode >= 500) {
