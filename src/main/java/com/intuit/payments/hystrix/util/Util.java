@@ -41,11 +41,11 @@ public class Util {
     }
 
     /**
-     * Creates a request header map.
+     * Creates a standard Intuit request header map.
      *
      * @param iamAuthHeader - an IAM Auth header value.
      * @param companyAuthId - a company auth id.
-     * @param requestId - a unique request id.
+     * @param requestId - a unique request id to be set in "intuit_tid" and "Request-Id" headers.
      * @return Map of HTTP headers.
      */
     public static Map<String, String> requestHeaders(String iamAuthHeader, String companyAuthId, String requestId) {
@@ -57,6 +57,7 @@ public class Util {
         }
         if (requestId != null && requestId.length() > 0) {
             headerMap.put("Request-Id", requestId);
+            headerMap.put("intuit_tid", requestId);
         }
         return headerMap;
     }

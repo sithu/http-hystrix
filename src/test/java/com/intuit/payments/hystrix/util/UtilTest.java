@@ -30,10 +30,11 @@ public class UtilTest {
                 "company-auth-id-123",
                 "request-id-999"
         );
-        assertEquals(3, map.size());
+        assertEquals(4, map.size());
         assertEquals("Intuit_IAM_Authentication intuit_appid=appId,intuit_app_secret=appSecre", map.get("Authorization"));
         assertEquals("company-auth-id-123", map.get("Company-Id"));
         assertEquals("request-id-999", map.get("Request-Id"));
+        assertEquals("request-id-999", map.get("intuit_tid"));
     }
 
     @Test
