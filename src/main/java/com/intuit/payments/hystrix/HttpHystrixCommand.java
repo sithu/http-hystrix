@@ -245,7 +245,7 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
      * Sets request headers like "Accept" and others, and JSON body if not empty.
      */
     private void setRequestHeaders(HttpUriRequest httpUriRequest) {
-        httpUriRequest.addHeader(ACCEPT, APPLICATION_JSON.toString());
+        httpUriRequest.addHeader(ACCEPT, APPLICATION_JSON.getMimeType());
         httpUriRequest.addHeader(X_REQUEST_SENT_AT, DATE_FORMAT.format(Calendar.getInstance().getTime()));
 
         for (String key : headerMap.keySet()) {
