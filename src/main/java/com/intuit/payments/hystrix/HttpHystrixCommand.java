@@ -243,6 +243,10 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
 
     /**
      * Sets request headers like "Accept" and others, and JSON body if not empty.
+     *
+     * NOTE: getMimeType() vs toString() differences!
+     * APPLICATION_JSON.getMimeType() => application/json
+     * APPLICATION_JSON.toString()    => application/json; charset=UTF-8
      */
     private void setRequestHeaders(HttpUriRequest httpUriRequest) {
         httpUriRequest.addHeader(ACCEPT, APPLICATION_JSON.getMimeType());
