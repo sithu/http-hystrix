@@ -3,11 +3,13 @@
 def VERSION_FILE='version.txt'
 
 version=file(VERSION_FILE).text.trim()
+println "Version from file: " + version
 
 // Ideally this should get pushed into a release plugin. But the idea
 // is that if the 'release' property is NOT set (usually from the command
 // line, then append "-SNAPSHOT" to the version
 if (!System.properties['release']) {
+	println "Release not called..."
     version += "-SNAPSHOT"      
 }
 
@@ -16,7 +18,7 @@ if (!System.properties['release']) {
  */
 task printVersion {
     doFirst {
-        println "$project.version"
+        println "Version: " + "$project.version"
     }
 }
 
