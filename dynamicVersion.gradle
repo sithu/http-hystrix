@@ -6,6 +6,7 @@ version=file(VERSION_FILE).text.trim()
 println "Version from file: " + version
 
 println "Release system property value: " + System.properties['release']
+println "Release system env value: " + System.getenv('release')
 
 // Ideally this should get pushed into a release plugin. But the idea
 // is that if the 'release' property is NOT set (usually from the command
