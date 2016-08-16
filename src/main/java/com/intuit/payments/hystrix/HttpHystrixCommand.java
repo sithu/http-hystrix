@@ -9,6 +9,7 @@ import com.intuit.payments.hystrix.util.Util;
 import com.netflix.hystrix.HystrixCommand;
 import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixCommandKey;
+import com.netflix.hystrix.exception.HystrixTimeoutException;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
@@ -22,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.UnsupportedEncodingException;
+import java.net.SocketTimeoutException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -66,10 +68,10 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
     private static final String HTTP_RESPONSE_HEADERS = "_http_response_headers";
 
     /**
-     * Hystrix execution timeout = Apache Http client timeouts + 1 millisecond so that underlying http client
+     * Hystrix execution timeout = Apache Http client timeouts + 10 millisecond so that underlying http client
      * will timeout first before Hystrix.
      */
-    private static final int TIMEOUT_BUFFER_BETWEEN_HTTP_CLEINT_AND_HYSTRIX = 1;
+    private static final int TIMEOUT_BUFFER_BETWEEN_HTTP_CLEINT_AND_HYSTRIX = 10;
 
     /**
      * Date format to return in the X_REQUEST_SENT_AT header
@@ -237,6 +239,9 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
             responseMap.put(HTTP_RESPONSE_HEADERS, httpResponse.getAllHeaders());
 
             return responseMap;
+        } catch (SocketTimeoutException stoEx) {
+            LOG.error(logStr.append("No data package received in " + socketTimeout + "ms.").toString(), stoEx);
+            throw new HystrixTimeoutException();
         }
     }
 
