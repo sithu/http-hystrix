@@ -15,7 +15,7 @@ git clone https://github.intuit.com/payments/http-hystrix && cd http-hystrix
 #### 2. Run Demo
 
 ```sh
-java -jar build/libs/http-hystrix-all-0.0.1-SNAPSHOT.jar
+java -jar build/libs/http-hystrix-all-0.0.3-SNAPSHOT.jar
 ```
 
 
@@ -24,7 +24,7 @@ java -jar build/libs/http-hystrix-all-0.0.1-SNAPSHOT.jar
 ##### Gradle
 ```groovy
 dependencies {
-    compile 'com.intuit.payments:http-hystrix:0.0.1'
+    compile 'com.intuit.payments:http-hystrix:0.0.2'
     // Dependencies
     compile 'com.netflix.hystrix:hystrix-core:1.5.3'
     compile 'com.google.code.gson:gson:2.3.1'
@@ -37,7 +37,7 @@ dependencies {
    <dependency>
       <groupId>com.intuit.payments</groupId>
       <artifactId>http-hystrix</artifactId>
-      <version>0.0.1</version>
+      <version>0.0.2</version>
       <scope>compile</scope>
    </dependency>
    <!-- Dependencies -->
