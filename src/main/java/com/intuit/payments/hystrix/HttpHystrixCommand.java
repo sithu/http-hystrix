@@ -244,6 +244,9 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
         } catch (SocketTimeoutException stoEx) {
             LOG.error(logStr.append("No data package received in " + socketTimeout + "ms.").toString(), stoEx);
             throw new HystrixTimeoutException();
+        } catch (Exception ex) {
+            LOG.error(logStr.append("Unknown exception=" + ex.getMessage()).toString(), ex);
+            throw ex;
         }
     }
 
