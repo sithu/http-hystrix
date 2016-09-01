@@ -10,6 +10,7 @@ import com.netflix.hystrix.HystrixCommand;
 import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixCommandKey;
 import com.netflix.hystrix.exception.HystrixTimeoutException;
+import org.apache.commons.lang.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
@@ -227,7 +228,9 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
 
             Map<String, Object> responseMap = new HashMap<>();
             try {
-                responseMap = Util.fromJson(responseStr);
+                if (StringUtils.isNotBlank(responseStr)) {
+                    responseMap = Util.fromJson(responseStr);
+                }
             } catch (Exception ex) {
                 LOG.error(logStr.append("String-to-JSON parsing failed. Setting response in _http_raw_response field.")
                         .toString(), ex);
@@ -236,7 +239,6 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
 
             responseMap.put(HTTP_STATUS_CODE, statusCode);
             responseMap.put(HTTP_STATUS_REASON, statusReason);
-            responseMap.put(HTTP_RESPONSE_HEADERS, httpResponse.getAllHeaders());
 
             return responseMap;
         } catch (SocketTimeoutException stoEx) {
