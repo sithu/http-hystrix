@@ -236,7 +236,10 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
                         .toString(), ex);
                 responseMap.put(HTTP_RAW_RESPONSE, responseStr);
             }
-
+            /** GSON (Util.fromJson) could return null for a bad input string without throwing an exception. */
+            if (responseMap == null) {
+                responseMap = new HashMap<>();
+            }
             responseMap.put(HTTP_STATUS_CODE, statusCode);
             responseMap.put(HTTP_STATUS_REASON, statusReason);
 
