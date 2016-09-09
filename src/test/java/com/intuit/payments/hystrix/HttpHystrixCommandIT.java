@@ -35,5 +35,7 @@ public class HttpHystrixCommandIT {
         assertEquals(200, response.get("_http_status_code"));
         assertEquals("OK", response.get("_http_status_reason"));
         assertTrue(response.containsKey("origin"));
+        assertNotNull(response.get("_http_raw_response"));
+        assertTrue(String.valueOf(response.get("_http_raw_response")).contains("origin"));
     }
 }

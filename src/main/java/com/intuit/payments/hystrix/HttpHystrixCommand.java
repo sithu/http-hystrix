@@ -58,15 +58,11 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
      */
     private static final String HTTP_STATUS_CODE = "_http_status_code";
     private static final String HTTP_STATUS_REASON = "_http_status_reason";
-    /**
-     * This value is only set when the response string was invalid JSON.
-     */
-    private static final String HTTP_RAW_RESPONSE = "_http_raw_response";
 
     /**
-     * Array of {@link org.apache.http.Header} instances.
+     * Entry to store original raw response string.
      */
-    private static final String HTTP_RESPONSE_HEADERS = "_http_response_headers";
+    private static final String HTTP_RAW_RESPONSE = "_http_raw_response";
 
     /**
      * Hystrix execution timeout = Apache Http client timeouts + 10 millisecond so that underlying http client
@@ -189,8 +185,8 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
     /**
      * Executes a POST call and set the response details in the response map.
      *
-     * @return Map of response including the HTTP headers.
-     * @throws Exception if either Unirest call failed or setting response details to the map failed.
+     * @return Response Map.
+     * @throws Exception if either Http client call failed or parsing to JSON failed.
      */
     @Override
     @SuppressWarnings("unchecked")
@@ -232,9 +228,8 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
                     responseMap = Util.fromJson(responseStr);
                 }
             } catch (Exception ex) {
-                LOG.error(logStr.append("String-to-JSON parsing failed. Setting response in _http_raw_response field.")
+                LOG.error(logStr.append("String-to-JSON parsing failed. See response in _http_raw_response field.")
                         .toString(), ex);
-                responseMap.put(HTTP_RAW_RESPONSE, responseStr);
             }
             /** GSON (Util.fromJson) could return null for a bad input string without throwing an exception. */
             if (responseMap == null) {
@@ -242,6 +237,7 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
             }
             responseMap.put(HTTP_STATUS_CODE, statusCode);
             responseMap.put(HTTP_STATUS_REASON, statusReason);
+            responseMap.put(HTTP_RAW_RESPONSE, responseStr);
 
             return responseMap;
         } catch (SocketTimeoutException stoEx) {
