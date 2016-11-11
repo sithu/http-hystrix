@@ -102,6 +102,12 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
     private String jsonBody;
 
     /**
+     * Any Http Response code greater than or equal to this value will throw a @{@link RuntimeException}.
+     * Default value is 500.
+     */
+    private int failedStatusCode = 500;
+
+    /**
      * Log string builder
      */
     private StringBuilder logStr = new StringBuilder("type=http_hystrix;");
@@ -183,6 +189,17 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
     }
 
     /**
+     * Sets a failed Http Status code to check against the client response code.
+     *
+     * @param failedStatusCode - A HTTP Response Code: 2xx, 3xx, 4xx, or 5xx.
+     * @return {@link HttpHystrixCommand} instance.
+     */
+    public HttpHystrixCommand failWhenStatusCodeIs(int failedStatusCode) {
+        this.failedStatusCode = failedStatusCode;
+        return this;
+    }
+
+    /**
      * Executes a POST call and set the response details in the response map.
      *
      * @return Response Map.
@@ -215,7 +232,8 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
                 logStr.append(";response_body=").append(responseStr);
             }
 
-            if (statusCode >= 500) {
+            if (statusCode >= failedStatusCode) {
+                logStr.append(";failed_response_body=").append(responseStr);
                 LOG.error(logStr.toString());
                 throw new RuntimeException("Failed to " + http + " the remote server. status=" + statusCode);
             } else {

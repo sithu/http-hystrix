@@ -38,4 +38,21 @@ public class HttpHystrixCommandIT {
         assertNotNull(response.get("_http_raw_response"));
         assertTrue(String.valueOf(response.get("_http_raw_response")).contains("origin"));
     }
+
+    @Test(expected = RuntimeException.class)
+    public void test_FailedHttpStatusCode() throws Exception {
+        HttpHystrixCommand httpHystrixCommand = new HttpHystrixCommand(
+                HttpHystrixCommand.Http.GET,
+                "https://httpbin.org/ip",
+                "TestCmd",
+                "TestGroup",
+                10000,
+                10000).failWhenStatusCodeIs(200); // Forces to throw RuntimeException even with 200.
+
+        httpHystrixCommand.headers(new HashMap<String, String>() {{
+            put("x-header", "x-value");
+        }});
+
+        httpHystrixCommand.run();
+    }
 }
