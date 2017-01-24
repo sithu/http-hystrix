@@ -30,6 +30,8 @@ public class HttpHystrixCommandIT {
         httpHystrixCommand.headers(new HashMap<String, String>() {{
             put("x-header", "x-value");
         }});
+        httpHystrixCommand.validateConnectionAfterInactivity(60000);
+
         Map<String, Object> response = httpHystrixCommand.run();
         assertNotNull(response);
         assertEquals(200, response.get("_http_status_code"));

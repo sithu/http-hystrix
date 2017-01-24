@@ -19,6 +19,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,6 +77,12 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
     /**
+     * Default period of inactivity in milliseconds after which persistent connections must be re-validated.
+     * 1 min = 60000 ms
+     */
+    private static final int DEFAULT_CONNECTION_POOL_VALIDATE_AFTER_INACTIVITY = 60000;
+
+    /**
      * The request URL string.
      */
     private final String url;
@@ -113,6 +120,11 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
     private StringBuilder logStr = new StringBuilder("type=http_hystrix;");
 
     /**
+     * Non-positive value passed to this method disables connection validation.
+     */
+    private final PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+
+    /**
      * Default constructor
      *
      * @param http - a {@link com.intuit.payments.hystrix.HttpHystrixCommand.Http} method enum.
@@ -140,6 +152,7 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
         this.url = url;
         this.socketTimeout = socketTimeoutInMilliSec;
         this.connectionTimeout = connectionTimeoutInMilliSec;
+        this.connectionManager.setValidateAfterInactivity(DEFAULT_CONNECTION_POOL_VALIDATE_AFTER_INACTIVITY);
         this.logStr.append("http=").append(http).append(";outURL=").append(url);
     }
 
@@ -200,6 +213,20 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
     }
 
     /**
+     * Defines period of inactivity in milliseconds after which persistent connections
+     * must be re-validated prior to being leased to the consumer.
+     * Non-positive value passed to this method disables connection validation.
+     * This check helps detect connections that have become stale (half-closed) while kept inactive in the pool.
+     *
+     * @param milliseconds - inactivity in milliseconds to revalidate the connection. Default is 1 min.
+     * @return {@link HttpHystrixCommand} instance.
+     */
+    public HttpHystrixCommand validateConnectionAfterInactivity(int milliseconds) {
+        this.connectionManager.setValidateAfterInactivity(milliseconds);
+        return this;
+    }
+
+    /**
      * Executes a POST call and set the response details in the response map.
      *
      * @return Response Map.
@@ -208,7 +235,8 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
     @Override
     @SuppressWarnings("unchecked")
     protected Map<String, Object> run() throws Exception {
-        try(CloseableHttpClient httpClient = HttpClients.createDefault()) {
+        try(CloseableHttpClient httpClient = HttpClients.custom()
+                .setConnectionManager(connectionManager).build()) {
             HttpUriRequest httpUriRequest = newHttpRequest();
             setRequestHeaders(httpUriRequest);
 
