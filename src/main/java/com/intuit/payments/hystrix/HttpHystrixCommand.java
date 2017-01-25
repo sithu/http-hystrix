@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.UnsupportedEncodingException;
 import java.net.SocketTimeoutException;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -324,7 +325,7 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
                 httpPost.setConfig(requestConfig);
                 if (jsonBody != null && jsonBody.length() > 0) {
                     httpPost.addHeader(CONTENT_TYPE, ContentType.APPLICATION_JSON.toString());
-                    httpPost.setEntity(new StringEntity(jsonBody));
+                    httpPost.setEntity(new StringEntity(jsonBody, StandardCharsets.UTF_8));
                 }
                 return httpPost;
 
