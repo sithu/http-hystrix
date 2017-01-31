@@ -230,13 +230,15 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
     /**
      * Executes a POST call and set the response details in the response map.
      *
+     * NOTE: useSystemProperties() will read JVM arguments like -Dhttp.proxyHost=10.0.0.1
+     *
      * @return Response Map.
      * @throws Exception if either Http client call failed or parsing to JSON failed.
      */
     @Override
     @SuppressWarnings("unchecked")
     protected Map<String, Object> run() throws Exception {
-        try(CloseableHttpClient httpClient = HttpClients.custom()
+        try(CloseableHttpClient httpClient = HttpClients.custom().useSystemProperties()
                 .setConnectionManager(connectionManager).build()) {
             HttpUriRequest httpUriRequest = newHttpRequest();
             setRequestHeaders(httpUriRequest);
