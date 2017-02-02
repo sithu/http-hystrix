@@ -21,23 +21,72 @@ import static org.apache.http.HttpHeaders.AUTHORIZATION;
  * @since 7/23/15
  */
 public class Util {
-    /** IAM Authentication HTTP header format. QBO V3 does NOT like having space between app id and app secret! */
-    private static final String AUTH_HEADER_FORMAT = "Intuit_IAM_Authentication intuit_appid=%s,intuit_app_secret=%s";
+    /**
+     *  Private Auth Plus Header
+     * Example:
+     *
+     * Authorization: Intuit_IAM_Authentication
+     *  intuit_appid=Intuit.cto.api.gateway.simulator.test,
+     *  intuit_app_secret=ctyj58n8VZvAqpl3W4pkn7,
+     *  intuit_token_type=IAM-Ticket,
+     *  intuit_realmid=50000003, [OPTIONAL]
+     *  intuit_token=V1-65-Q3y8elbiw74j5wdna2cei5,
+     *  intuit_userid=100186433
+     **/
+
+    /** Private Auth Format. NOTE: QBO V3 does NOT like having space between app id and app secret! */
+    private static final String IAM_APP_ID_APP_SECRET = "Intuit_IAM_Authentication intuit_appid=%s,intuit_app_secret=%s";
+
+    /** Private Auth Plus Format */
+    private static final String TOKEN_TYPE_TOKEN_USER_ID = ",intuit_token_type=%s,intuit_token=%s,intuit_userid=%s";
 
     /** Gson instance */
     private static final Gson gson = new Gson();
 
+    /** IAM Ticket Token Type */
+    private static final String IAM_TICKET = "IAM-Ticket";
+
     /**
-     * Creates an IAM Auth header using the specified appId and appSecret.
+     * Creates an Private Auth IAM Auth header using the specified appId and appSecret.
      *
      * @param appId - an IAM application id.
      * @param appSecret - an IAM application secret.
      * @return an IAM authentication header string.
      */
-    public static String createIAMAuthHeader(final String appId, final String appSecret) {
+    public static String privateAuth(final String appId, final String appSecret) {
         checkStringIsNotBlank(appId, "Invalid app Id=" + appId);
         checkStringIsNotBlank(appSecret, "Invalid app secret=" + appSecret);
-        return format(AUTH_HEADER_FORMAT, appId, appSecret);
+        return format(IAM_APP_ID_APP_SECRET, appId, appSecret);
+    }
+
+    /**
+     * Create a Private Auth's Plus header portion.
+     *
+     * @param tokenType -  Private Auth Plus token type.
+     * @param token - IAM Ticket a.k.a. token.
+     * @param userId - User Id.
+     *
+     * @return Private Auth's Plus header portion.
+     */
+    public static String plus(String tokenType, String token, String userId) {
+        checkStringIsNotBlank(tokenType, "Invalid app Id=" + tokenType);
+        checkStringIsNotBlank(token, "Invalid app secret=" + token);
+        checkStringIsNotBlank(userId, "Invalid userId=" + userId);
+        return format(TOKEN_TYPE_TOKEN_USER_ID, tokenType, token, userId);
+    }
+
+    /**
+     * Create a default IAM-Ticket type (Private Auth) Plus header.
+     *
+     * @param token - IAM Ticket a.k.a. token.
+     * @param userId - User Id.
+     *
+     * @return Private Auth's Plus header portion using IAM-Ticket token type
+     */
+    public static String plus(String token, String userId) {
+        checkStringIsNotBlank(token, "Invalid token (IAM ticket) =" + token);
+        checkStringIsNotBlank(userId, "Invalid userId =" + userId);
+        return format(TOKEN_TYPE_TOKEN_USER_ID, IAM_TICKET, token, userId);
     }
 
     /**

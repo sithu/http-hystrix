@@ -18,9 +18,25 @@ import static org.junit.Assert.*;
 public class UtilTest {
 
     @Test
-    public void testCreateIAMAuthHeader() throws Exception {
-        String iamHeader = Util.createIAMAuthHeader("appId", "appSecret");
+    public void testPrivateAuthHeader() throws Exception {
+        String iamHeader = Util.privateAuth("appId", "appSecret");
         assertEquals("Intuit_IAM_Authentication intuit_appid=appId,intuit_app_secret=appSecret", iamHeader);
+    }
+
+    @Test
+    public void testPrivateAuthPlusHeader() throws Exception {
+        String iamHeader = Util.privateAuth("appId", "appSecret").concat(Util.plus("CBT-Token", "token-123", "userId-123"));
+        assertEquals("Intuit_IAM_Authentication intuit_appid=appId,intuit_app_secret=appSecret" +
+                ",intuit_token_type=CBT-Token,intuit_token=token-123,intuit_userid=userId-123",
+                iamHeader);
+    }
+
+    @Test
+    public void testPrivateAuthPlusWithDefaultTokenTypeHeader() throws Exception {
+        String iamHeader = Util.privateAuth("appId", "appSecret").concat(Util.plus("token-123", "userId-123"));
+        assertEquals("Intuit_IAM_Authentication intuit_appid=appId,intuit_app_secret=appSecret" +
+                        ",intuit_token_type=IAM-Ticket,intuit_token=token-123,intuit_userid=userId-123",
+                iamHeader);
     }
 
     @Test
