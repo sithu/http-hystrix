@@ -5,9 +5,13 @@
  */
 package com.intuit.payments.hystrix;
 
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.*;
@@ -21,7 +25,7 @@ public class HttpHystrixCommandIT {
     public void test() throws Exception {
         HttpHystrixCommand httpHystrixCommand = new HttpHystrixCommand(
                 HttpHystrixCommand.Http.GET,
-                "https://httpbin.org/ip",
+                "http://httpbin.org/ip",
                 "TestCmd",
                 "TestGroup",
                 10000,
@@ -45,7 +49,7 @@ public class HttpHystrixCommandIT {
     public void test_FailedHttpStatusCode() throws Exception {
         HttpHystrixCommand httpHystrixCommand = new HttpHystrixCommand(
                 HttpHystrixCommand.Http.GET,
-                "https://httpbin.org/ip",
+                "http://httpbin.org/ip",
                 "TestCmd",
                 "TestGroup",
                 10000,
@@ -56,5 +60,32 @@ public class HttpHystrixCommandIT {
         }});
 
         httpHystrixCommand.run();
+    }
+
+    @Test
+    public void testFormPOST() throws Exception {
+        HttpHystrixCommand httpHystrixCommand = new HttpHystrixCommand(
+                HttpHystrixCommand.Http.FORM_POST,
+                "http://httpbin.org/post",
+                "FormPOSTCmd",
+                "TestGroup",
+                10000,
+                10000);
+
+        httpHystrixCommand.headers(new HashMap<String, String>() {{
+            put("x-header", "x-value");
+        }});
+        List<NameValuePair> nvps = new ArrayList<>();
+        nvps.add(new BasicNameValuePair("username", "foo"));
+        httpHystrixCommand.formBody(nvps);
+
+        Map<String, Object> response = httpHystrixCommand.run();
+        assertNotNull(response);
+        assertEquals(200, response.get("_http_status_code"));
+        assertEquals("OK", response.get("_http_status_reason"));
+        assertTrue(response.containsKey("origin"));
+        assertNotNull(response.get("_http_raw_response"));
+        assertEquals("application/x-www-form-urlencoded; charset=UTF-8", ((Map) response.get("headers")).get("Content-Type"));
+        assertEquals("foo", ((Map) response.get("form")).get("username"));
     }
 }

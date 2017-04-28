@@ -13,7 +13,9 @@ import com.netflix.hystrix.exception.HystrixTimeoutException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.*;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
@@ -30,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.netflix.hystrix.HystrixCommandProperties.Setter;
@@ -108,6 +111,11 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
      * JSON key-value pairs in a String format.
      */
     private String jsonBody;
+
+    /**
+     * {@link UrlEncodedFormEntity} to store HTML Form POST name-value pairs body.
+     */
+    private UrlEncodedFormEntity urlEncodedFormEntity;
 
     /**
      * Any Http Response code greater than or equal to this value will throw a @{@link RuntimeException}.
@@ -199,6 +207,17 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
      */
     public HttpHystrixCommand body(String body) {
         this.jsonBody = body;
+        return this;
+    }
+
+    /**
+     * Adds name-value pair Http Form POST to the request body.
+     *
+     * @param nvps - list of name/value pairs
+     * @return {@link HttpHystrixCommand} instance.
+     */
+    public HttpHystrixCommand formBody(final List<NameValuePair> nvps) {
+        this.urlEncodedFormEntity = new UrlEncodedFormEntity(nvps, StandardCharsets.UTF_8);
         return this;
     }
 
@@ -307,7 +326,9 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
      * APPLICATION_JSON.toString()    => application/json; charset=UTF-8
      */
     private void setRequestHeaders(HttpUriRequest httpUriRequest) {
-        httpUriRequest.addHeader(ACCEPT, APPLICATION_JSON.getMimeType());
+        if (http != Http.FORM_POST) {
+            httpUriRequest.addHeader(ACCEPT, APPLICATION_JSON.getMimeType());
+        }
         httpUriRequest.addHeader(X_REQUEST_SENT_AT, DATE_FORMAT.format(Calendar.getInstance().getTime()));
 
         for (String key : headerMap.keySet()) {
@@ -369,12 +390,19 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
                 httpOptions.setConfig(requestConfig);
                 return httpOptions;
 
+            case FORM_POST:
+                HttpPost httpFormPost = new HttpPost(url);
+                httpFormPost.setConfig(requestConfig);
+                /** Uses this.urlEncodedFormEntity instead of jsonBody */
+                httpFormPost.setEntity(this.urlEncodedFormEntity);
+                return httpFormPost;
+
             default:
                 throw new IllegalArgumentException("Invalid Http method:" + http);
         }
     }
 
     public enum Http {
-        POST, GET, PUT, PATCH, DELETE, HEAD, OPTIONS
+        POST, GET, PUT, PATCH, DELETE, HEAD, OPTIONS, FORM_POST
     }
 }
