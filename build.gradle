@@ -28,10 +28,9 @@ dependencies {
 }
 
 test {
-    useJUnit {
-       // excludeCategories '*IT.java'
-    }
+    exclude '**/*IT*'
 }
+
 // Define what should be published
 publishing {
 
