@@ -25,14 +25,15 @@ public class HttpHystrixCommandIT {
     public void test() throws Exception {
         HttpHystrixCommand httpHystrixCommand = new HttpHystrixCommand(
                 HttpHystrixCommand.Http.GET,
-                "http://httpbin.org/ip",
+                "http://httpbin.org/headers",
                 "TestCmd",
                 "TestGroup",
                 10000,
                 10000);
 
         httpHystrixCommand.headers(new HashMap<String, String>() {{
-            put("x-header", "x-value");
+            put("X-Header", "x-value");
+            put("Accept", "text/html");
         }});
         httpHystrixCommand.validateConnectionAfterInactivity(60000);
 
@@ -40,9 +41,10 @@ public class HttpHystrixCommandIT {
         assertNotNull(response);
         assertEquals(200, response.get("_http_status_code"));
         assertEquals("OK", response.get("_http_status_reason"));
-        assertTrue(response.containsKey("origin"));
         assertNotNull(response.get("_http_raw_response"));
-        assertTrue(String.valueOf(response.get("_http_raw_response")).contains("origin"));
+        Map<String, Object> respHeaders = (Map)response.get("headers");
+        assertEquals("x-value", respHeaders.get("X-Header"));
+        assertEquals("text/html", respHeaders.get("Accept"));
     }
 
     @Test(expected = RuntimeException.class)

@@ -326,7 +326,7 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
      * APPLICATION_JSON.toString()    => application/json; charset=UTF-8
      */
     private void setRequestHeaders(HttpUriRequest httpUriRequest) {
-        if (http != Http.FORM_POST) {
+        if (http != Http.FORM_POST && !headerMap.containsKey(ACCEPT)) {
             httpUriRequest.addHeader(ACCEPT, APPLICATION_JSON.getMimeType());
         }
         httpUriRequest.addHeader(X_REQUEST_SENT_AT, DATE_FORMAT.format(Calendar.getInstance().getTime()));
