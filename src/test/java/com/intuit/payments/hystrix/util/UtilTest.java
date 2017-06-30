@@ -5,12 +5,17 @@
  */
 package com.intuit.payments.hystrix.util;
 
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Test cases for Util class.
@@ -55,11 +60,17 @@ public class UtilTest {
 
     @Test
     public void testToJson() throws Exception {
-        String json = Util.toJson(new HashMap<String, Object>() {{
+        Foo foo = new Foo();
+        foo.value = "bar";
+
+        String json = Util.toJson(foo);
+        String expected = "{\"value\":\"bar\"}";
+        assertEquals(expected, json);
+
+        json = Util.toJson(new HashMap<String, Object>() {{
             put("foo", "bar");
         }});
-        String expected = "{\"foo\":\"bar\"}";
-        assertEquals(expected, json);
+        assertEquals("{\"foo\":\"bar\"}", json);
     }
 
     @Test
@@ -68,5 +79,47 @@ public class UtilTest {
         assertNotNull(map);
         assertEquals(1, map.size());
         assertEquals("bar", map.get("foo"));
+    }
+
+    @Test
+    public void testFromJson_Class() throws Exception {
+        Foo foo = new Foo();
+        foo.value = "bar";
+
+        Foo actual = Util.fromJson("{\"value\":\"bar\"}", Foo.class);
+        assertNotNull(actual);
+        assertEquals(foo.value, actual.value);
+    }
+
+    @Test
+    public void TestToNameValuePairList() {
+        Map<String, String> nvps = new HashMap<String, String>() {{
+            put("foo", "bar");
+        }};
+
+        List<NameValuePair> expected = new ArrayList<>();
+        expected.add(new BasicNameValuePair("foo", "bar"));
+
+        List<NameValuePair> actual = Util.toNameValuePairList(nvps);
+        assertEquals(actual, expected);
+    }
+
+    @Test
+    public void getFullURL() {
+        String host = "http://localhost";
+        String path = "/v1/foo";
+
+        assertEquals(host, Util.getFullURL(host, null));
+        assertEquals(host + path, Util.getFullURL(host, path));
+        path = "/v1/users/{0}";
+        assertEquals(host + "/v1/users/123", Util.getFullURL(host, path, 123));
+    }
+
+    class Foo {
+        String value;
+
+        public Foo() {
+            value = "";
+        }
     }
 }

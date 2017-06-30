@@ -12,8 +12,8 @@ import com.netflix.hystrix.HystrixCommandKey;
 import com.netflix.hystrix.exception.HystrixTimeoutException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.Header;
+import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.*;
@@ -32,9 +32,10 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
+import static com.intuit.payments.hystrix.util.Util.isNullOrBlank;
+import static com.intuit.payments.hystrix.util.Util.toNameValuePairList;
 import static com.netflix.hystrix.HystrixCommandProperties.Setter;
 import static org.apache.http.HttpHeaders.ACCEPT;
 import static org.apache.http.HttpHeaders.CONTENT_TYPE;
@@ -49,9 +50,9 @@ import static org.apache.http.entity.ContentType.APPLICATION_JSON;
  * @author saung
  * @since 6/16/16
  */
-public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
+public class Request extends HystrixCommand<Map<String, Object>> {
     /** Logger instance */
-    private static final Logger LOG = LoggerFactory.getLogger(HttpHystrixCommand.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Request.class);
 
     /**
      * Additional HTTP Request Header to track network latency between this client and target server
@@ -70,7 +71,7 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
     private static final String HTTP_RAW_RESPONSE = "_http_raw_response";
 
     /**
-     * Hystrix execution timeout = Apache Http client timeouts + 10 millisecond so that underlying http client
+     * Hystrix execution timeout = Apache HttpVerb client timeouts + 10 milliseconds so that underlying httpVerb client
      * will timeout first before Hystrix.
      */
     private static final int TIMEOUT_BUFFER_BETWEEN_HTTP_CLEINT_AND_HYSTRIX = 10;
@@ -91,16 +92,16 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
      */
     private final String url;
 
-    /**
-     * Http method of the request.
-     */
-    private final Http http;
-
-    /** Http client's connection timeout. */
+    /** HttpVerb client's connection timeout. */
     private final int connectionTimeout;
 
-    /** Http client's socket timeout. */
+    /** HttpVerb client's socket timeout. */
     private final int socketTimeout;
+
+    /**
+     * HttpVerb method of the request.
+     */
+    private HttpVerb httpVerb;
 
     /**
      * Optional request header map
@@ -118,7 +119,7 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
     private UrlEncodedFormEntity urlEncodedFormEntity;
 
     /**
-     * Any Http Response code greater than or equal to this value will throw a @{@link RuntimeException}.
+     * Any HttpVerb Response code greater than or equal to this value will throw a @{@link RuntimeException}.
      * Default value is 500.
      */
     private int failedStatusCode = 500;
@@ -134,100 +135,183 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
     private final PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
 
     /**
+     * Serializes the raw string body to JSON if the response content type is application/json.
+     */
+    private boolean convertToJSONIfMatchContentType = true;
+
+    /** DTO class to be deserialized from the response body. */
+    private Class responseDTOClass = null;
+
+    /**
      * Default constructor
      *
-     * @param http - a {@link com.intuit.payments.hystrix.HttpHystrixCommand.Http} method enum.
      * @param url - URL to be called.
      * @param hystrixCommandName - Hystrix command name.
      * @param hystrixGroupName - Hystrix command group name.
      * @param connectionTimeoutInMilliSec - Time to wait to get a connection.
      * @param socketTimeoutInMilliSec - Time to wait to send a request and receive a response.
      *
-     * Hystrix Timeout = (Http Connection Timeout + Http Socket Timeout) + 1
+     * Hystrix Timeout = (HttpVerb Connection Timeout + HttpVerb Socket Timeout) + 1
      */
-    public HttpHystrixCommand(Http http,
-                              String url,
-                              String hystrixCommandName,
-                              String hystrixGroupName,
-                              int connectionTimeoutInMilliSec,
-                              int socketTimeoutInMilliSec) {
+    public Request(String url,
+                   String hystrixCommandName,
+                   String hystrixGroupName,
+                   int connectionTimeoutInMilliSec,
+                   int socketTimeoutInMilliSec) {
         super(Setter.withGroupKey(HystrixCommandGroupKey.Factory
                 .asKey(hystrixGroupName))
                 .andCommandKey(HystrixCommandKey.Factory.asKey(hystrixCommandName))
                 .andCommandPropertiesDefaults(Setter()
                         .withExecutionTimeoutInMilliseconds(connectionTimeoutInMilliSec + socketTimeoutInMilliSec
                         + TIMEOUT_BUFFER_BETWEEN_HTTP_CLEINT_AND_HYSTRIX)));
-        this.http = http;
         this.url = url;
         this.socketTimeout = socketTimeoutInMilliSec;
         this.connectionTimeout = connectionTimeoutInMilliSec;
         this.connectionManager.setValidateAfterInactivity(DEFAULT_CONNECTION_POOL_VALIDATE_AFTER_INACTIVITY);
-        this.logStr.append("http=").append(http).append(";outURL=").append(url);
+        this.logStr.append("httpVerb=").append(httpVerb).append(";outURL=").append(url);
+    }
+
+    /**
+     * Sets the HttpVerb GET method.
+     *
+     * @return {@link Request} instance.
+     */
+    public Request GET() {
+        httpVerb = HttpVerb.GET;
+        return this;
+    }
+
+    /**
+     * Sets the HttpVerb POST method.
+     *
+     * @return {@link Request} instance.
+     */
+    public Request POST() {
+        httpVerb = HttpVerb.POST;
+        return this;
+    }
+
+    /**
+     * Sets the HttpVerb Form POST method and name-value pairs body.
+     *
+     * @param nvps - List of name-value pair string.
+     * @return {@link Request} instance.
+     */
+    public Request FORM_POST(Map<String, String> nvps) {
+        httpVerb = HttpVerb.FORM_POST;
+        urlEncodedFormEntity = new UrlEncodedFormEntity(toNameValuePairList(nvps), StandardCharsets.UTF_8);
+        return this;
+    }
+
+    /**
+     * Sets the HttpVerb PUT method.
+     *
+     * @return {@link Request} instance.
+     */
+    public Request PUT() {
+        httpVerb = HttpVerb.PUT;
+        return this;
+    }
+
+    /**
+     * Sets the HttpVerb DELETE method.
+     *
+     * @return {@link Request} instance.
+     */
+    public Request DELETE() {
+        httpVerb = HttpVerb.DELETE;
+        return this;
+    }
+
+    /**
+     * Sets the HttpVerb HEAD method.
+     *
+     * @return {@link Request} instance.
+     */
+    public Request HEAD() {
+        httpVerb = HttpVerb.HEAD;
+        return this;
     }
 
     /**
      * Sets a request header. The "Accept" and "Content-Type" headers are auto-included.
      *
-     * @param name - a Http header name
-     * @param value - a Http header value
-     * @return {@link HttpHystrixCommand} instance.
+     * @param name - a HttpVerb header name
+     * @param value - a HttpVerb header value
+     * @return {@link Request} instance.
      */
-    public HttpHystrixCommand header(String name, String value) {
-        this.headerMap.put(name, value);
+    public Request header(String name, String value) {
+        if (!isNullOrBlank(name) && !isNullOrBlank(value)) {
+            this.headerMap.put(name, value);
+        }
         return this;
     }
 
     /**
      * Sets request headers. The "Accept" and "Content-Type" headers are auto-included.
      *
-     * @param headers - Map of Http request headers.
-     * @return {@link HttpHystrixCommand} instance.
+     * @param headers - Map of HttpVerb request headers.
+     * @return {@link Request} instance.
      */
-    public HttpHystrixCommand headers(Map<String, String> headers) {
-        this.headerMap.putAll(headers);
+    public Request headers(Map<String, String> headers) {
+        if (headers != null) {
+            this.headerMap.putAll(headers);
+        }
         return this;
     }
 
     /**
-     * Sets JSON representation of key-value map as body. POST, PUT, and PATCH only!
+     * Ensures the response content-type is 'application/json' before converting the response to JSON string.
      *
-     * @param bodyMap - Map of key-value pairs.
-     * @return {@link HttpHystrixCommand} instance.
+     * @param is_application_json - a boolean value; default is true.
+     * @return {@link Request} instance.
      */
-    public HttpHystrixCommand body(Map<String, Object> bodyMap) {
-        this.jsonBody = Util.toJson(bodyMap);
+    public Request assertJsonContentType(boolean is_application_json) {
+        convertToJSONIfMatchContentType = is_application_json;
         return this;
     }
 
     /**
-     * Sets JSON representation of string body. POST, PUT, and PATCH only!
+     * Sets a DTO class type to be deserialized the response body unless you want
+     * default key-value Map<String, Object> binding.
      *
-     * @param body - JSON body string.
-     * @return {@link HttpHystrixCommand} instance.
+     * @param clazz - the class
+     * @return {@link Request} instance.
      */
-    public HttpHystrixCommand body(String body) {
+    public Request deserializedClass(Class clazz) {
+        responseDTOClass = clazz;
+        return this;
+    }
+
+    /**
+     * Sets a JSON representation of string request body. POST, PUT, and PATCH only!
+     *
+     * @param body - a request JSON string.
+     * @return {@link Request} instance.
+     */
+    public Request bodyStr(String body) {
         this.jsonBody = body;
         return this;
     }
 
     /**
-     * Adds name-value pair Http Form POST to the request body.
+     * Sets a request payload by converting to JSON string. POST, PUT, and PATCH only!
      *
-     * @param nvps - list of name/value pairs
-     * @return {@link HttpHystrixCommand} instance.
+     * @param request - Request payload object, such as Map<String,?> or DTO instance.
+     * @return {@link Request} instance.
      */
-    public HttpHystrixCommand formBody(final List<NameValuePair> nvps) {
-        this.urlEncodedFormEntity = new UrlEncodedFormEntity(nvps, StandardCharsets.UTF_8);
+    public Request body(Object request) {
+        this.jsonBody = Util.toJson(request);
         return this;
     }
 
     /**
-     * Sets a failed Http Status code to check against the client response code.
+     * Sets a failed HttpVerb Status code to check against the client response code.
      *
      * @param failedStatusCode - A HTTP Response Code: 2xx, 3xx, 4xx, or 5xx.
-     * @return {@link HttpHystrixCommand} instance.
+     * @return {@link Request} instance.
      */
-    public HttpHystrixCommand failWhenStatusCodeIs(int failedStatusCode) {
+    public Request throwExceptionIfResponseCodeIsGreaterThanOrEqual(int failedStatusCode) {
         this.failedStatusCode = failedStatusCode;
         return this;
     }
@@ -239,9 +323,9 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
      * This check helps detect connections that have become stale (half-closed) while kept inactive in the pool.
      *
      * @param milliseconds - inactivity in milliseconds to revalidate the connection. Default is 1 min.
-     * @return {@link HttpHystrixCommand} instance.
+     * @return {@link Request} instance.
      */
-    public HttpHystrixCommand validateConnectionAfterInactivity(int milliseconds) {
+    public Request validateConnectionAfterInactivity(int milliseconds) {
         this.connectionManager.setValidateAfterInactivity(milliseconds);
         return this;
     }
@@ -252,7 +336,7 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
      * NOTE: useSystemProperties() will read JVM arguments like -Dhttp.proxyHost=10.0.0.1
      *
      * @return Response Map.
-     * @throws Exception if either Http client call failed or parsing to JSON failed.
+     * @throws Exception if either HttpVerb client call failed or parsing to JSON failed.
      */
     @Override
     @SuppressWarnings("unchecked")
@@ -285,27 +369,37 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
             if (statusCode >= failedStatusCode) {
                 logStr.append(";failed_response_body=").append(responseStr);
                 LOG.error(logStr.toString());
-                throw new RuntimeException("Failed to " + http + " the remote server. status=" + statusCode);
+                throw new RuntimeException("Failed to " + httpVerb + " the remote server. status=" + statusCode);
             } else {
                 LOG.info(logStr.toString());
             }
 
-            Map<String, Object> responseMap = new HashMap<>();
+            final Map<String, Object> responseMap = new HashMap<>();
+            responseMap.put(HTTP_STATUS_CODE, statusCode);
+            responseMap.put(HTTP_STATUS_REASON, statusReason);
+            responseMap.put(HTTP_RAW_RESPONSE, responseStr);
+
+            if (StringUtils.isBlank(responseStr)) {
+                return responseMap;
+            }
+
             try {
-                if (StringUtils.isNotBlank(responseStr)) {
-                    responseMap = Util.fromJson(responseStr);
+                if (convertToJSONIfMatchContentType) {
+                    /** If the content type is other than application/json, skips deserialization. */
+                    if (httpResponse.containsHeader(HttpHeaders.CONTENT_TYPE) &&
+                        ContentType.APPLICATION_JSON.getMimeType().equals(httpResponse.
+                                getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue())) {
+                        fromJson(responseMap, responseStr);
+                    } else {
+                        return responseMap;
+                    }
+                } else {
+                    fromJson(responseMap, responseStr);
                 }
             } catch (Exception ex) {
                 LOG.error(logStr.append("String-to-JSON parsing failed. See response in _http_raw_response field.")
                         .toString(), ex);
             }
-            /** GSON (Util.fromJson) could return null for a bad input string without throwing an exception. */
-            if (responseMap == null) {
-                responseMap = new HashMap<>();
-            }
-            responseMap.put(HTTP_STATUS_CODE, statusCode);
-            responseMap.put(HTTP_STATUS_REASON, statusReason);
-            responseMap.put(HTTP_RAW_RESPONSE, responseStr);
 
             return responseMap;
         } catch (SocketTimeoutException stoEx) {
@@ -317,6 +411,17 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
         }
     }
 
+    private final void fromJson(Map<String, Object> responseMap, String responseStr) {
+        if (responseDTOClass != null) {
+            responseMap.put("DTO", Util.fromJson(responseStr, responseDTOClass));
+        } else {
+            /** GSON (Util.fromJson) could return null for a bad input string without throwing an exception. */
+            Map<String, Object> body = Util.fromJson(responseStr);
+            if (body != null) {
+                responseMap.putAll(body);
+            }
+        }
+    }
 
     /**
      * Sets request headers like "Accept" and others, and JSON body if not empty.
@@ -326,7 +431,7 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
      * APPLICATION_JSON.toString()    => application/json; charset=UTF-8
      */
     private void setRequestHeaders(HttpUriRequest httpUriRequest) {
-        if (http != Http.FORM_POST && !headerMap.containsKey(ACCEPT)) {
+        if (httpVerb != HttpVerb.FORM_POST && !headerMap.containsKey(ACCEPT)) {
             httpUriRequest.addHeader(ACCEPT, APPLICATION_JSON.getMimeType());
         }
         httpUriRequest.addHeader(X_REQUEST_SENT_AT, DATE_FORMAT.format(Calendar.getInstance().getTime()));
@@ -342,7 +447,7 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
                 .setConnectTimeout(connectionTimeout)
                 .build();
 
-        switch (http) {
+        switch (httpVerb) {
             case POST:
                 HttpPost httpPost = new HttpPost(url);
                 httpPost.setConfig(requestConfig);
@@ -398,11 +503,11 @@ public class HttpHystrixCommand extends HystrixCommand<Map<String, Object>> {
                 return httpFormPost;
 
             default:
-                throw new IllegalArgumentException("Invalid Http method:" + http);
+                throw new IllegalArgumentException("Invalid HttpVerb method:" + httpVerb);
         }
     }
 
-    public enum Http {
+    private enum HttpVerb {
         POST, GET, PUT, PATCH, DELETE, HEAD, OPTIONS, FORM_POST
     }
 }

@@ -7,9 +7,14 @@ package com.intuit.payments.hystrix.util;
 
 
 import com.google.gson.Gson;
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
 
+import java.text.MessageFormat;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
@@ -112,13 +117,16 @@ public class Util {
     }
 
     /**
-     * Converts from a Map to a JSON string.
+     * Converts from an Object to a JSON string.
      *
-     * @param map - a Map instance.
+     * @param object - any Object instance.
      * @return a JSON string
      */
-    public static String toJson(final Map<String, ?> map) {
-        return gson.toJson(map, Map.class);
+    public static String toJson(Object object) {
+        if (object instanceof Map) {
+            return gson.toJson(object, Map.class);
+        }
+        return gson.toJson(object);
     }
 
     /**
@@ -132,13 +140,72 @@ public class Util {
     }
 
     /**
+     * Converts from a JSON string to instance of <T>.
      *
-     * @param str
-     * @param err
+     * @param jsonStr - a JSON string.
+     * @param classOfT -  a class of <T>.
+     * @param <T> Generic type T to be serialized from JSON.
+     * @return T instance.
+     */
+    public static <T> T fromJson(String jsonStr, Class<T> classOfT) {
+        return gson.fromJson(jsonStr, classOfT);
+    }
+
+    /**
+     * Checks whether a string is null or empty.
+     *
+     * @param str - a String to be checked.
+     * @return true if the given string is not blank; return false otherwise.
+     */
+    public static boolean isNullOrBlank(String str) {
+        return (str == null || str.trim().length() < 1);
+    }
+
+    /**
+     * Checks whether a string is null or empty and raises an exception.
+     *
+     * @param str - a string to be checked.
+     * @param err - an error message.
      */
     public static void checkStringIsNotBlank(String str, String err) {
-        if (str == null || str.trim().length() < 1) {
+        if (isNullOrBlank(str)) {
             throw new IllegalArgumentException(err);
         }
+    }
+
+    /**
+     * Converts to a {@link NameValuePair} list for a Http Form POST request body.
+     *
+     * @param nvps - a name-value pair Http form POST map.
+     * @return a {@link NameValuePair} list.
+     */
+    public static List<NameValuePair> toNameValuePairList(Map<String, String> nvps) {
+        List<NameValuePair> nvpsList = nvps.entrySet().stream()
+                .map(x -> new BasicNameValuePair(x.getKey(), x.getValue()) )
+                .collect(Collectors.toList());
+        return nvpsList;
+    }
+
+    /**
+     * Constructs full URL with path using the given template in this format: /path/{0}/path/{1}
+     *
+     * @param host - Server host or server base URL.
+     * @param path - API URL path, such as /v1/users/{0}.
+     * @param templateValues - an optional varargs for URL template, such as user id "123" for path "/v1/users/{0}"
+     * @return a full URL string.
+     */
+    public static String getFullURL(String host, String path, Object... templateValues) {
+        String url = host;
+        if (!isNullOrBlank(path)) {
+            url += path;
+
+            // replace {x} with actual values.
+            if (templateValues.length > 0) {
+                MessageFormat messageFormat = new MessageFormat(url);
+                url = messageFormat.format(templateValues);
+            }
+        }
+
+        return url;
     }
 }

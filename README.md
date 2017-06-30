@@ -63,9 +63,8 @@ dependencies {
 
 ##### How to POST?
 ```java
-// 1. Construct a HttpHystrix Command
-HttpHystrixCommand httpHystrixCommand = new HttpHystrixCommand(
-        Http.POST,
+// 1. Construct a Request
+Request request = new Request(
         "http://jsonplaceholder.typicode.com/posts",
         "PostJSONCommand",
         "HTTPGroup",
@@ -74,19 +73,18 @@ HttpHystrixCommand httpHystrixCommand = new HttpHystrixCommand(
 );
 
 // 2. Set a Request Body (HttpHystrix will convert Map to JSON internally)
-httpHystrixCommand.body(new HashMap<String, Object>() {{
+request.body(new HashMap<String, Object>() {{
     put("foo", "bar");
 }});
 
 // 3. Execute the command
-Map<String, Object> response = httpHystrixCommand.execute();
+Map<String, Object> response = request.POST().execute();
 ```
 
 ##### How to GET?
 ```java
-// 1. Construct a HttpHystrix Command
-HttpHystrixCommand httpHystrixCommand = new HttpHystrixCommand(
-        Http.GET,
+// 1. Construct a Request
+Request request = new Request(
         "https://httpbin.org/get",
         "GetHttpBinCommand",
         "HTTPGroup",
@@ -98,10 +96,10 @@ HttpHystrixCommand httpHystrixCommand = new HttpHystrixCommand(
 Map<String, String> headers = new HashMap<String, String>() {{
         put("_foo1", "bar1");
 }};
-httpHystrixCommand.headers(headers);
+request.headers(headers);
         
 // 3. Execute the command
-Map<String, Object> response = httpHystrixCommand.execute();
+Map<String, Object> response = request.GET().execute();
 ```
 
 ### Jenkins 
