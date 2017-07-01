@@ -5,10 +5,7 @@
  */
 package com.intuit.payments.hystrix;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -18,9 +15,6 @@ import static org.junit.Assert.assertNotNull;
  * @since 6/30/17.
  */
 public class ClientTest {
-    @Rule
-    public MockitoRule mockitoRule = MockitoJUnit.rule();
-
     private Client client = new Client("http://localhost");
 
     @Test
@@ -36,7 +30,7 @@ public class ClientTest {
 
     @Test
     public void customAuth() throws Exception {
-        assertNotNull(client.customAuth(() -> "my-auth-impl"));
+        assertNotNull(client.customAuth((x) -> "my-auth-impl"));
     }
 
     @Test
@@ -55,5 +49,15 @@ public class ClientTest {
         assertNotNull(request);
         assertEquals("GetCmd", request.getCommandKey().name());
         assertEquals("HttpGroup", request.getCommandGroup().name());
+    }
+
+    @Test
+    public void withPrivateAuthPlus() {
+        Request request = client.Request("GetCmd", "HttpGroup", "/v1/users/{0}", 123);
+        assertNotNull(request);
+        assertEquals("GetCmd", request.getCommandKey().name());
+        assertEquals("HttpGroup", request.getCommandGroup().name());
+        request = client.withPrivateAuthPlus(request, "ticket-v1-123", "111");
+        assertNotNull(request);
     }
 }

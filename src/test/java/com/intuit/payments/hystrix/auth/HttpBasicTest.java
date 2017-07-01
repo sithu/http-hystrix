@@ -5,22 +5,20 @@
  */
 package com.intuit.payments.hystrix.auth;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * @author saung
- * @since 6/29/17.
+ * @since 6/30/17.
  */
-public class HttpVerbBasicTest {
+public class HttpBasicTest {
     @Test
     public void getAuthHeader() throws Exception {
+        AuthInterface authInterface = new HttpBasic("foo:bar");
+        assertNotNull(authInterface);
+        assertEquals("Basic Zm9vOmJhcg==", authInterface.getAuthHeader());
     }
-
-    @Rule
-    public MockitoRule mockitoRule = MockitoJUnit.rule();
-
-
 }

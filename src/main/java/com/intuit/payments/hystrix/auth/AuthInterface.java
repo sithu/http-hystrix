@@ -15,7 +15,8 @@ public interface AuthInterface {
     /**
      * Gets a Http "Authorization" header value to be used in Http Hystrix client.
      *
+     * @param perRequestTicket - Optional per-request ticket for auth that requires current user context.
      * @return the "Authorization" header value string.
      */
-    String getAuthHeader();
+    String getAuthHeader(String... perRequestTicket);
 }

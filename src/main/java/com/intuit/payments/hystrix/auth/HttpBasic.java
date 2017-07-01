@@ -40,10 +40,11 @@ public class HttpBasic implements AuthInterface {
     /**
      * Gets a Http Basic Auth header value.
      *
+     * @param perRequestTicket - Not applicable in Http Basic Auth.
      * @return a Base64 encoded username : password.
      */
     @Override
-    public String getAuthHeader() {
+    public String getAuthHeader(String... perRequestTicket) {
         return usernameAndPassword;
     }
 }

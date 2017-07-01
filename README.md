@@ -102,6 +102,4 @@ request.headers(headers);
 Map<String, Object> response = request.GET().execute();
 ```
 
-### Jenkins 
-
-* [Publish to Nexus Maven Repo](http://paymentsjenkinsm1.corp.intuit.net/view/Product%20Views/view/gopayment/job/http-hystrix-commit/)
+### [Jenkins Build](https://qbmsjenkins.payments.intuit.net/job/http-hystrix-commit/) 

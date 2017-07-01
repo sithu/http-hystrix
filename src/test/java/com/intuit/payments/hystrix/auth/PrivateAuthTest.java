@@ -5,10 +5,10 @@
  */
 package com.intuit.payments.hystrix.auth;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * @author saung
@@ -17,10 +17,8 @@ import org.mockito.junit.MockitoRule;
 public class PrivateAuthTest {
     @Test
     public void getAuthHeader() throws Exception {
+        AuthInterface authInterface = new PrivateAuth("MyAppId", "MyAppSecret");
+        assertNotNull(authInterface);
+        assertEquals("Intuit_IAM_Authentication intuit_appid=MyAppId,intuit_app_secret=MyAppSecret", authInterface.getAuthHeader());
     }
-
-    @Rule
-    public MockitoRule mockitoRule = MockitoJUnit.rule();
-
-
 }

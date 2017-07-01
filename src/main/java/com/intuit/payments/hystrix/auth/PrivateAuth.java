@@ -41,12 +41,13 @@ public class PrivateAuth implements AuthInterface {
     }
 
     /**
-     * Gets a Http Basic Auth header value.
-     *
-     * @return a Base64 encoded username : password.
+     * Gets a Intuit Private Auth Basic Auth header value.
+
+     * @param perRequestTicket - Not applicable in Private Auth mode.
+     * @return a IAM Private Auth header value.
      */
     @Override
-    public String getAuthHeader() {
+    public String getAuthHeader(String... perRequestTicket) {
         return iamAuth;
     }
 }

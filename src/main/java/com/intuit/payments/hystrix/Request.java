@@ -92,10 +92,10 @@ public class Request extends HystrixCommand<Map<String, Object>> {
      */
     private final String url;
 
-    /** HttpVerb client's connection timeout. */
+    /** timeout to get a network connection to server. */
     private final int connectionTimeout;
 
-    /** HttpVerb client's socket timeout. */
+    /** timeout to receive individual packets after connection handshake. */
     private final int socketTimeout;
 
     /**
@@ -151,7 +151,7 @@ public class Request extends HystrixCommand<Map<String, Object>> {
      * @param connectionTimeoutInMilliSec - Time to wait to get a connection.
      * @param socketTimeoutInMilliSec - Time to wait to send a request and receive a response.
      *
-     * Hystrix Timeout = (HttpVerb Connection Timeout + HttpVerb Socket Timeout) + 1
+     * Hystrix Timeout = (Connection Timeout + Socket Timeout) + 10 milliseconds buffer.
      */
     public Request(String url,
                    String hystrixCommandName,
@@ -168,7 +168,7 @@ public class Request extends HystrixCommand<Map<String, Object>> {
         this.socketTimeout = socketTimeoutInMilliSec;
         this.connectionTimeout = connectionTimeoutInMilliSec;
         this.connectionManager.setValidateAfterInactivity(DEFAULT_CONNECTION_POOL_VALIDATE_AFTER_INACTIVITY);
-        this.logStr.append("httpVerb=").append(httpVerb).append(";outURL=").append(url);
+        this.logStr.append("http=").append(httpVerb).append(";outURL=").append(url);
     }
 
     /**

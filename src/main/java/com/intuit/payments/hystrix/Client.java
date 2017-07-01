@@ -11,8 +11,6 @@ import com.intuit.payments.hystrix.auth.PrivateAuth;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ConcurrentHashMap;
-
 import static com.intuit.payments.hystrix.util.Util.checkStringIsNotBlank;
 import static com.intuit.payments.hystrix.util.Util.getFullURL;
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
@@ -44,9 +42,6 @@ public class Client {
     /** Time to wait to send a request and receive a response */
     private int socketTimeoutInMilliSec;
 
-    /** operation to API path mapping. E.g. getFoo => /v1/foo/{0} */
-    private ConcurrentHashMap<String, String> paths = new ConcurrentHashMap<>();
-
     /**
      * Default constructor
      *
@@ -56,8 +51,15 @@ public class Client {
         checkStringIsNotBlank(serverBaseUrl, "serverBaseUrl must not be null or empty");
         this.serverBaseUrl = serverBaseUrl;
         /** Default is no auth! */
-        this.authInterface = () -> null;
-        log.info("type=init;".concat("server_url={}"), this.serverBaseUrl);
+        this.authInterface = (x) -> null;
+        /** Default 10 seconds timeout to get a network connection to server. */
+        this.connectionTimeoutInMilliSec = 10000;
+
+        /** Default 60 seconds timeout to receive individual packets */
+        this.socketTimeoutInMilliSec = 60000;
+
+        log.info("type=init;".concat("host={};default_conn_timeout={};default_socket_timeout={}"),
+                this.serverBaseUrl, this.connectionTimeoutInMilliSec, this.socketTimeoutInMilliSec);
     }
 
     /**
@@ -95,7 +97,7 @@ public class Client {
     }
 
     /**
-     * Set the Http connection timeout in millisecond
+     * Sets the Http connection timeout in millisecond
      *
      * @param connectionTimeoutInMilliSec -  the timeout in millisecond
      * @return {@link Client} instance.
@@ -106,7 +108,7 @@ public class Client {
     }
 
     /**
-     * Set the Http socket timeout
+     * Sets the Http socket timeout
      *
      * @param socketTimeoutInMilliSec - the Http Socket timeout in milliseconds.
      * @return {@link Client} instance.
@@ -134,5 +136,17 @@ public class Client {
             connectionTimeoutInMilliSec,
             socketTimeoutInMilliSec)
             .header(AUTHORIZATION, authInterface.getAuthHeader());
+    }
+
+    /**
+     * Creates new Request instance using Private Auth Plus Authorization.
+     *
+     * @param request - a Request instance.
+     * @param ticket - IAM session ticket.
+     * @param userId - IAM user id.
+     * @return a Request instance.
+     */
+    public Request withPrivateAuthPlus(Request request, String ticket, String userId) {
+        return request.header(AUTHORIZATION, authInterface.getAuthHeader(ticket, userId));
     }
 }

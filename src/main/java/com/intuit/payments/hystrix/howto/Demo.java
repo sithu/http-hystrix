@@ -33,17 +33,11 @@ public class Demo {
     }
 
     private static void httpGET() {
-        Map<String, String> headers = new HashMap<String, String>() {{
-            put("_foo1", "bar1");
-        }};
-
-        Client client = new Client("https://httpbin.org")
-                .connectionTimeoutInMilliSec(5000)
-                .socketTimeoutInMilliSec(8000);
+        Client client = new Client("https://httpbin.org");
 
         Map<String, Object> response = client.Request("GetCommand","HttpGroup", "/get")
                 .GET()
-                .headers(headers)
+                .header("Intuit-Tid", "12345")
                 .execute();
 
         out.println("__Response__\n" +
@@ -52,18 +46,15 @@ public class Demo {
     }
 
     private static void httpPOST() {
-        Client client = new Client("http://jsonplaceholder.typicode.com")
-                .connectionTimeoutInMilliSec(5000)
-                .socketTimeoutInMilliSec(8000);
-
-        Map<String, Object> body = new HashMap<String, Object>() {{
-            put("foo", "bar");
-        }};
+        Client client = new Client("http://jsonplaceholder.typicode.com");
 
         Map<String, Object> response = client.Request("PostCommand", "HttpGroup","/posts")
                 .POST()
-                .body(body)
-                .execute();
+                .body(
+                        new HashMap<String, Object>() {{
+                            put("foo", "bar");
+                        }}
+                ).execute();
 
         out.println("\n__Response__\n" +
                 response.get(HTTP_STATUS_CODE) + " " +
