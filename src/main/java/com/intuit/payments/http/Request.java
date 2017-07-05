@@ -58,17 +58,6 @@ public class Request extends HystrixCommand<Response> {
     private static final String X_REQUEST_SENT_AT = "x-request-sent-at";
 
     /**
-     * HTTP Response headers included in the response map.
-     */
-    private static final String HTTP_STATUS_CODE = "_http_status_code";
-    private static final String HTTP_STATUS_REASON = "_http_status_reason";
-
-    /**
-     * Entry to store original raw response string.
-     */
-    private static final String HTTP_RAW_RESPONSE = "_http_raw_response";
-
-    /**
      * Hystrix execution timeout = Apache HttpVerb client timeouts + 10 milliseconds so that underlying httpVerb client
      * will timeout first before Hystrix.
      */
