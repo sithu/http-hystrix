@@ -1,6 +1,6 @@
-# Hystrix HTTP Client
+# HTTP for Humans
 
-HystrixCommand extension to support JSON Http Client.
+HC is designed to be simplest Http client for Java. By default, the calls are protected by [Hystrix](https://github.com/Netflix/Hystrix/wiki) circuit breakers.
 
 
 ### Test Drive
@@ -15,7 +15,7 @@ git clone https://github.intuit.com/payments/http-hystrix && cd http-hystrix
 #### 2. Run Demo
 
 ```sh
-java -jar build/libs/http-hystrix-all-0.0.3-SNAPSHOT.jar
+java -jar build/libs/hc-all-0.1.0-SNAPSHOT.jar
 ```
 
 
@@ -24,8 +24,8 @@ java -jar build/libs/http-hystrix-all-0.0.3-SNAPSHOT.jar
 ##### Gradle
 ```groovy
 dependencies {
-    compile 'com.intuit.payments:http-hystrix:0.0.2'
-    // Dependencies
+    compile 'com.intuit.payments.http:hc:0.1.0'
+    // add HC's dependencies
     compile 'com.netflix.hystrix:hystrix-core:1.5.3'
     compile 'com.google.code.gson:gson:2.3.1'
     compile 'org.apache.httpcomponents:httpclient:4.5.2'
@@ -35,9 +35,9 @@ dependencies {
 ##### Maven
 ```xml
    <dependency>
-      <groupId>com.intuit.payments</groupId>
-      <artifactId>http-hystrix</artifactId>
-      <version>0.0.2</version>
+      <groupId>com.intuit.payments.http</groupId>
+      <artifactId>hc</artifactId>
+      <version>0.1.0</version>
       <scope>compile</scope>
    </dependency>
    <!-- Dependencies -->
@@ -61,45 +61,32 @@ dependencies {
    </dependency>
 ```
 
-##### How to POST?
+##### Making a HTTP GET Call
+
 ```java
-// 1. Construct a Request
-Request request = new Request(
-        "http://jsonplaceholder.typicode.com/posts",
-        "PostJSONCommand",
-        "HTTPGroup",
-        100000,
-        100000
-);
+Client client = new Client("https://httpbin.org");
+Response response = client.Request("GetCommand","HttpGroup", "/get")
+        .GET()
+        .header("intuit_tid", "12345")
+        .execute();
 
-// 2. Set a Request Body (HttpHystrix will convert Map to JSON internally)
-request.body(new HashMap<String, Object>() {{
-    put("foo", "bar");
-}});
-
-// 3. Execute the command
-Map<String, Object> response = request.POST().execute();
 ```
 
-##### How to GET?
-```java
-// 1. Construct a Request
-Request request = new Request(
-        "https://httpbin.org/get",
-        "GetHttpBinCommand",
-        "HTTPGroup",
-        100000,
-        100000
-);
 
-// 2. Set any additional request headers.
-Map<String, String> headers = new HashMap<String, String>() {{
-        put("_foo1", "bar1");
-}};
-request.headers(headers);
-        
-// 3. Execute the command
-Map<String, Object> response = request.GET().execute();
+##### Making a HTTP POST Call
+
+```java
+Client client = new Client("http://jsonplaceholder.typicode.com");
+
+Response response = client.Request("PostCommand", "HttpGroup","/posts")
+        .POST()
+        .body(
+                new HashMap<String, Object>() {{
+                    put("foo", "bar");
+                }}
+        ).execute();
+
 ```
+
 
 ### [Jenkins Build](https://qbmsjenkins.payments.intuit.net/job/http-hystrix-commit/) 

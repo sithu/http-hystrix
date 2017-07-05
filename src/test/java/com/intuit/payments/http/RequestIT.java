@@ -3,7 +3,7 @@
  * is a violation of applicable law. This material contains certain
  * confidential or proprietary information and trade secrets of Intuit Inc.
  */
-package com.intuit.payments.hystrix;
+package com.intuit.payments.http;
 
 import org.junit.Test;
 
@@ -32,14 +32,14 @@ public class RequestIT {
         }});
         request.validateConnectionAfterInactivity(60000);
 
-        Map<String, Object> response = request.run();
+        Response response = request.run();
         assertNotNull(response);
-        assertEquals(200, response.get("_http_status_code"));
-        assertEquals("OK", response.get("_http_status_reason"));
-        assertNotNull(response.get("_http_raw_response"));
-        Map<String, Object> respHeaders = (Map)response.get("headers");
-        assertEquals("x-value", respHeaders.get("X-Header"));
-        assertEquals("text/html", respHeaders.get("Accept"));
+        assertEquals(200, response.statusCode());
+        assertEquals("OK", response.statusReason());
+        assertNotNull(response.rawString());
+        Map<String, Object> resp = (Map) response.map().get("headers");
+        assertEquals("x-value", resp.get("X-Header"));
+        assertEquals("text/html", resp.get("Accept"));
     }
 
     @Test(expected = RuntimeException.class)
@@ -60,27 +60,26 @@ public class RequestIT {
 
     @Test
     public void testFormPOST() throws Exception {
-        Map<String, String> request = new HashMap<String, String>() {{
+        Map<String, String> payload = new HashMap<String, String>() {{
             put("username", "foo");
         }};
-        Request httpHystrixCommand = new Request(
+        Request request = new Request(
                 "http://httpbin.org/post",
                 "FormPOSTCmd",
                 "TestGroup",
                 10000,
-                10000).FORM_POST(request);
+                10000).FORM_POST(payload);
 
-        httpHystrixCommand.headers(new HashMap<String, String>() {{
+        request.headers(new HashMap<String, String>() {{
             put("x-header", "x-value");
         }});
 
-        Map<String, Object> response = httpHystrixCommand.run();
+        Response response = request.run();
         assertNotNull(response);
-        assertEquals(200, response.get("_http_status_code"));
-        assertEquals("OK", response.get("_http_status_reason"));
-        assertTrue(response.containsKey("origin"));
-        assertNotNull(response.get("_http_raw_response"));
-        assertEquals("application/x-www-form-urlencoded; charset=UTF-8", ((Map) response.get("headers")).get("Content-Type"));
-        assertEquals("foo", ((Map) response.get("form")).get("username"));
+        assertEquals(200, response.statusCode());
+        assertEquals("OK", response.statusReason());
+        assertNotNull(response.rawString());
+        assertEquals("application/x-www-form-urlencoded; charset=UTF-8", ((Map) response.map().get("headers")).get("Content-Type"));
+        assertEquals("foo", ((Map)response.map().get("form")).get("username"));
     }
 }

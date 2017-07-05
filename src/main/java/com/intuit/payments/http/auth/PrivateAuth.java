@@ -3,12 +3,12 @@
  * is a violation of applicable law. This material contains certain
  * confidential or proprietary information and trade secrets of Intuit Inc.
  */
-package com.intuit.payments.hystrix.auth;
+package com.intuit.payments.http.auth;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.intuit.payments.hystrix.util.Util.checkStringIsNotBlank;
+import static com.intuit.payments.http.util.Util.checkStringIsNotBlank;
 import static java.lang.String.format;
 
 /**

@@ -3,7 +3,7 @@
  * is a violation of applicable law. This material contains certain
  * confidential or proprietary information and trade secrets of Intuit Inc.
  */
-package com.intuit.payments.hystrix.auth;
+package com.intuit.payments.http.auth;
 
 import org.junit.Test;
 
@@ -12,13 +12,13 @@ import static org.junit.Assert.assertNotNull;
 
 /**
  * @author saung
- * @since 6/29/17.
+ * @since 6/30/17.
  */
-public class PrivateAuthTest {
+public class HttpBasicTest {
     @Test
     public void getAuthHeader() throws Exception {
-        AuthInterface authInterface = new PrivateAuth("MyAppId", "MyAppSecret");
+        AuthInterface authInterface = new HttpBasic("foo:bar");
         assertNotNull(authInterface);
-        assertEquals("Intuit_IAM_Authentication intuit_appid=MyAppId,intuit_app_secret=MyAppSecret", authInterface.getAuthHeader());
+        assertEquals("Basic Zm9vOmJhcg==", authInterface.getAuthHeader());
     }
 }

@@ -16,6 +16,11 @@ buildscript {
 }
 
 jar {
+    manifest {
+        attributes 'Implementation-Title': 'Http Hystrix Command Jar Example',
+                'Implementation-Version': version,
+                'Main-Class': 'com.intuit.payments.http.howto.Demo'
+    }
     exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA'
 }
 
@@ -23,9 +28,9 @@ dependencies {
     compile 'com.netflix.hystrix:hystrix-core:1.5.3'
     compile 'org.apache.httpcomponents:httpclient:4.5.2'
     compile 'com.google.code.gson:gson:2.3.1'
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.0'
 
     testCompile 'junit:junit:4.12'
-//    testCompile "org.mockito:mockito-all:2.0.2-beta"
 }
 
 test {
@@ -50,7 +55,7 @@ task uberJar(type: Jar) {
     manifest {
         attributes 'Implementation-Title': 'Http Hystrix Command Jar Example',
                 'Implementation-Version': version,
-                'Main-Class': 'com.intuit.payments.hystrix.howto.HttpHystrixCommandDemo'
+                'Main-Class': 'com.intuit.payments.http.howto.Demo'
     }
     baseName = project.name + '-all'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }

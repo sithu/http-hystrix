@@ -3,7 +3,7 @@
  * is a violation of applicable law. This material contains certain
  * confidential or proprietary information and trade secrets of Intuit Inc.
  */
-package com.intuit.payments.hystrix.util;
+package com.intuit.payments.http.util;
 
 import com.netflix.hystrix.HystrixCommand;
 import com.netflix.hystrix.HystrixCommandGroupKey;

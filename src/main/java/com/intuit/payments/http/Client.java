@@ -3,16 +3,16 @@
  * is a violation of applicable law. This material contains certain
  * confidential or proprietary information and trade secrets of Intuit Inc.
  */
-package com.intuit.payments.hystrix;
+package com.intuit.payments.http;
 
-import com.intuit.payments.hystrix.auth.AuthInterface;
-import com.intuit.payments.hystrix.auth.HttpBasic;
-import com.intuit.payments.hystrix.auth.PrivateAuth;
+import com.intuit.payments.http.auth.AuthInterface;
+import com.intuit.payments.http.auth.HttpBasic;
+import com.intuit.payments.http.auth.PrivateAuth;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.intuit.payments.hystrix.util.Util.checkStringIsNotBlank;
-import static com.intuit.payments.hystrix.util.Util.getFullURL;
+import static com.intuit.payments.http.util.Util.checkStringIsNotBlank;
+import static com.intuit.payments.http.util.Util.getFullURL;
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
 
 /**

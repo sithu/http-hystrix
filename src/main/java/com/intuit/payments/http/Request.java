@@ -3,16 +3,14 @@
  * is a violation of applicable law. This material contains certain
  * confidential or proprietary information and trade secrets of Intuit Inc.
  */
-package com.intuit.payments.hystrix;
+package com.intuit.payments.http;
 
-import com.intuit.payments.hystrix.util.Util;
+import com.intuit.payments.http.util.Util;
 import com.netflix.hystrix.HystrixCommand;
 import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixCommandKey;
 import com.netflix.hystrix.exception.HystrixTimeoutException;
-import org.apache.commons.lang.StringUtils;
 import org.apache.http.Header;
-import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -34,8 +32,8 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.intuit.payments.hystrix.util.Util.isNullOrBlank;
-import static com.intuit.payments.hystrix.util.Util.toNameValuePairList;
+import static com.intuit.payments.http.util.Util.isNullOrBlank;
+import static com.intuit.payments.http.util.Util.toNameValuePairList;
 import static com.netflix.hystrix.HystrixCommandProperties.Setter;
 import static org.apache.http.HttpHeaders.ACCEPT;
 import static org.apache.http.HttpHeaders.CONTENT_TYPE;
@@ -50,7 +48,7 @@ import static org.apache.http.entity.ContentType.APPLICATION_JSON;
  * @author saung
  * @since 6/16/16
  */
-public class Request extends HystrixCommand<Map<String, Object>> {
+public class Request extends HystrixCommand<Response> {
     /** Logger instance */
     private static final Logger LOG = LoggerFactory.getLogger(Request.class);
 
@@ -133,14 +131,6 @@ public class Request extends HystrixCommand<Map<String, Object>> {
      * Non-positive value passed to this method disables connection validation.
      */
     private final PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-
-    /**
-     * Serializes the raw string body to JSON if the response content type is application/json.
-     */
-    private boolean convertToJSONIfMatchContentType = true;
-
-    /** DTO class to be deserialized from the response body. */
-    private Class responseDTOClass = null;
 
     /**
      * Default constructor
@@ -261,29 +251,6 @@ public class Request extends HystrixCommand<Map<String, Object>> {
     }
 
     /**
-     * Ensures the response content-type is 'application/json' before converting the response to JSON string.
-     *
-     * @param is_application_json - a boolean value; default is true.
-     * @return {@link Request} instance.
-     */
-    public Request assertJsonContentType(boolean is_application_json) {
-        convertToJSONIfMatchContentType = is_application_json;
-        return this;
-    }
-
-    /**
-     * Sets a DTO class type to be deserialized the response body unless you want
-     * default key-value Map<String, Object> binding.
-     *
-     * @param clazz - the class
-     * @return {@link Request} instance.
-     */
-    public Request deserializedClass(Class clazz) {
-        responseDTOClass = clazz;
-        return this;
-    }
-
-    /**
      * Sets a JSON representation of string request body. POST, PUT, and PATCH only!
      *
      * @param body - a request JSON string.
@@ -340,7 +307,7 @@ public class Request extends HystrixCommand<Map<String, Object>> {
      */
     @Override
     @SuppressWarnings("unchecked")
-    protected Map<String, Object> run() throws Exception {
+    protected Response run() throws Exception {
         try(CloseableHttpClient httpClient = HttpClients.custom().useSystemProperties()
                 .setConnectionManager(connectionManager).build()) {
             HttpUriRequest httpUriRequest = newHttpRequest();
@@ -374,52 +341,13 @@ public class Request extends HystrixCommand<Map<String, Object>> {
                 LOG.info(logStr.toString());
             }
 
-            final Map<String, Object> responseMap = new HashMap<>();
-            responseMap.put(HTTP_STATUS_CODE, statusCode);
-            responseMap.put(HTTP_STATUS_REASON, statusReason);
-            responseMap.put(HTTP_RAW_RESPONSE, responseStr);
-
-            if (StringUtils.isBlank(responseStr)) {
-                return responseMap;
-            }
-
-            try {
-                if (convertToJSONIfMatchContentType) {
-                    /** If the content type is other than application/json, skips deserialization. */
-                    if (httpResponse.containsHeader(HttpHeaders.CONTENT_TYPE) &&
-                        ContentType.APPLICATION_JSON.getMimeType().equals(httpResponse.
-                                getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue())) {
-                        fromJson(responseMap, responseStr);
-                    } else {
-                        return responseMap;
-                    }
-                } else {
-                    fromJson(responseMap, responseStr);
-                }
-            } catch (Exception ex) {
-                LOG.error(logStr.append("String-to-JSON parsing failed. See response in _http_raw_response field.")
-                        .toString(), ex);
-            }
-
-            return responseMap;
+            return new Response(statusCode, statusReason, responseStr, httpResponse.getAllHeaders());
         } catch (SocketTimeoutException stoEx) {
             LOG.error(logStr.append("No data package received in " + socketTimeout + "ms.").toString(), stoEx);
             throw new HystrixTimeoutException();
         } catch (Exception ex) {
             LOG.error(logStr.append("Unknown exception=" + ex.getMessage()).toString(), ex);
             throw ex;
-        }
-    }
-
-    private final void fromJson(Map<String, Object> responseMap, String responseStr) {
-        if (responseDTOClass != null) {
-            responseMap.put("DTO", Util.fromJson(responseStr, responseDTOClass));
-        } else {
-            /** GSON (Util.fromJson) could return null for a bad input string without throwing an exception. */
-            Map<String, Object> body = Util.fromJson(responseStr);
-            if (body != null) {
-                responseMap.putAll(body);
-            }
         }
     }
 
