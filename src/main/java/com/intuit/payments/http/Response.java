@@ -134,10 +134,8 @@ public class Response {
 
         String headerValue = headers.get(HttpHeaders.CONTENT_TYPE);
         if (isNullOrBlank(headerValue) || !headerValue.contains(APPLICATION_JSON.getMimeType())) {
-            LOG.warn("Response Content-Type was NOT expected {}. content_type={}"
-                    , APPLICATION_JSON.getMimeType(), headerValue);
-            throw new IllegalArgumentException("Response Content-Type was NOT expected "
-                    + APPLICATION_JSON.getMimeType() + ". content_type=" + headerValue);
+            LOG.warn("Unexpected Content-Type: {}", headerValue);
+            throw new IllegalArgumentException("Unexpected Content-Type: " + headerValue);
         }
 
         return true;
