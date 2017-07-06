@@ -18,6 +18,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 /**
+ * Unit test for {@link Response}.
+ *
  * @author saung
  * @since 7/5/17.
  */
@@ -113,10 +115,23 @@ public class ResponseTest {
         assertNull(response.json(Foo.class));
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void json_not_application_json_content_type() throws Exception {
+    @Test
+    public void json_without_application_json_content_type() throws Exception {
         headers = new BasicHeader[] {
                 new BasicHeader("X-Header", "X-Value"),
+        };
+        Response response = new Response(201, "Created", "{ \"value\": \"bar\" }", headers);
+        assertNotNull(response);
+        Foo expected = new Foo();
+        expected.value = "bar";
+
+        assertEquals(expected, response.json(Foo.class));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void json_with_incorrect_content_type() throws Exception {
+        headers = new BasicHeader[] {
+                new BasicHeader("Content-Type", "application/xml"),
         };
         Response response = new Response(201, "Created", "{ \"value\": \"bar\" }", headers);
         assertNotNull(response);

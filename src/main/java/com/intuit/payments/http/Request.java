@@ -31,6 +31,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 import static com.intuit.payments.http.util.Util.isNullOrBlank;
 import static com.intuit.payments.http.util.Util.toNameValuePairList;
@@ -84,6 +85,9 @@ public class Request extends HystrixCommand<Response> {
 
     /** timeout to receive individual packets after connection handshake. */
     private final int socketTimeout;
+
+    /** Hystrix fallback function */
+    private Function<Throwable, Response> fallback;
 
     /**
      * HttpVerb method of the request.
@@ -148,6 +152,36 @@ public class Request extends HystrixCommand<Response> {
         this.connectionTimeout = connectionTimeoutInMilliSec;
         this.connectionManager.setValidateAfterInactivity(DEFAULT_CONNECTION_POOL_VALIDATE_AFTER_INACTIVITY);
         this.logStr.append("http=").append(httpVerb).append(";outURL=").append(url);
+    }
+
+    /**
+     * Adds a custom fallback function to this {@link HystrixCommand} a.k.a {@link Request} instance.
+     *
+     * @param fallback - a function that accepts one argument and produces a result.
+     * @return this {@link Request} instance.
+     */
+    public Request fallback(Function<Throwable, Response> fallback) {
+        this.fallback = fallback;
+        return this;
+    }
+
+    /**
+     * If {@link #execute()} or {@link #queue()} fails in any way then this method will be invoked to provide an opportunity to return a fallback response.
+     * <p>
+     * This should do work that does not require network transport to produce.
+     * <p>
+     * In other words, this should be a static or cached result that can immediately be returned upon failure.
+     * <p>
+     * If network traffic is wanted for fallback (such as going to MemCache) then the fallback implementation should invoke another {@link HystrixCommand} instance that protects against that network
+     * access and possibly has another level of fallback that does not involve network access.
+     * <p>
+     * DEFAULT BEHAVIOR: It throws UnsupportedOperationException.
+     *
+     * @return R or throw UnsupportedOperationException if not implemented
+     */
+    @Override
+    protected Response getFallback() {
+        return (fallback != null) ? fallback.apply(getExecutionException()) : super.getFallback();
     }
 
     /**

@@ -133,7 +133,12 @@ public class Response {
         }
 
         String headerValue = headers.get(HttpHeaders.CONTENT_TYPE);
-        if (isNullOrBlank(headerValue) || !headerValue.contains(APPLICATION_JSON.getMimeType())) {
+        if (isNullOrBlank(headerValue)) {
+            LOG.warn("Missing Content-Type in the response headers, but trying to de-serialize the body.");
+            return true;
+        }
+
+        if (!headerValue.contains(APPLICATION_JSON.getMimeType())) {
             LOG.warn("Unexpected Content-Type: {}", headerValue);
             throw new IllegalArgumentException("Unexpected Content-Type: " + headerValue);
         }

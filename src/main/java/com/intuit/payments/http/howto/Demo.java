@@ -8,6 +8,7 @@ package com.intuit.payments.http.howto;
 import com.intuit.payments.http.Client;
 import com.intuit.payments.http.Request;
 import com.intuit.payments.http.Response;
+import org.apache.http.Header;
 
 import java.util.HashMap;
 
@@ -27,6 +28,7 @@ public class Demo {
     public static void main(String[] args) {
         httpGET();
         httpPOST();
+        with_fallback();
     }
 
     private static void httpGET() {
@@ -54,6 +56,27 @@ public class Demo {
                 ).execute();
 
         out.println("\n__Response__\n" +
+                response.statusCode() + " " +
+                response.statusReason() + "\n" + response.map());
+    }
+
+    private static void with_fallback() {
+        String cache_json = "{ \"foo\" : \"this_is_from_cache\" }";
+
+        Client client = new Client("http://httpbin.org");
+
+        // Triggers HTTP 500
+        Response response = client.Request("PostCommand", "HttpGroup","/status/500")
+                .POST()
+                .body(
+                        new HashMap<String, Object>() {{
+                            put("foo", "bar");
+                        }}
+                )
+                .fallback( x -> new Response(304, "Not Modified", cache_json, new Header[] { }) )
+                .execute();
+
+        out.println("__Response__\n" +
                 response.statusCode() + " " +
                 response.statusReason() + "\n" + response.map());
     }
