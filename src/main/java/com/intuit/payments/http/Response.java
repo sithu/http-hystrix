@@ -5,6 +5,7 @@
  */
 package com.intuit.payments.http;
 
+import com.intuit.payments.http.exception.*;
 import org.apache.http.Header;
 import org.apache.http.HttpHeaders;
 import org.slf4j.Logger;
@@ -123,6 +124,23 @@ public class Response {
         } catch(Exception e) {
             LOG.error("Failed to deserialize the body JSON string to the given type<{}>. raw_string=" + rawString, clazz);
             throw e;
+        }
+    }
+
+    /**
+     * Raise a {@link HCException} for any Http response code > 299.
+     */
+    public void raise_for_status() {
+        if (statusCode() < 300) {
+            return;
+        }
+        String err = "Server returned Http " + statusCode() + "-" + statusReason();
+        switch (statusCode()) {
+            case 400: throw new HCBadRequestException(err);
+            case 401: throw new HCUnauthorizedException(err);
+            case 403: throw new HCForbiddenException(err);
+            case 404: throw new HCResourceNotFoundException(err);
+            default: throw new HCException(err);
         }
     }
 

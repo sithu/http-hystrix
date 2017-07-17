@@ -6,6 +6,7 @@
 
 package com.intuit.payments.http;
 
+import com.intuit.payments.http.exception.*;
 import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
 import org.junit.Test;
@@ -139,6 +140,42 @@ public class ResponseTest {
         expected.value = "bar";
 
         assertEquals(expected, response.json(Foo.class));
+    }
+
+    @Test
+    public void raise_for_status() {
+        Response response = new Response(201, "Created", "{ \"value\": \"bar\" }", headers);
+        response.raise_for_status();
+    }
+
+    @Test(expected = HCBadRequestException.class)
+    public void raise_for_status_400() {
+        Response response = new Response(400, "Bad Request", "{ \"value\": \"bar\" }", headers);
+        response.raise_for_status();
+    }
+
+    @Test(expected = HCUnauthorizedException.class)
+    public void raise_for_status_401() {
+        Response response = new Response(401, "Unauthorized", "{ \"value\": \"bar\" }", headers);
+        response.raise_for_status();
+    }
+
+    @Test(expected = HCForbiddenException.class)
+    public void raise_for_status_403() {
+        Response response = new Response(403, "Forbidden", "{ \"value\": \"bar\" }", headers);
+        response.raise_for_status();
+    }
+
+    @Test(expected = HCResourceNotFoundException.class)
+    public void raise_for_status_404() {
+        Response response = new Response(404, "Not Found", "{ \"value\": \"bar\" }", headers);
+        response.raise_for_status();
+    }
+
+    @Test(expected = HCException.class)
+    public void raise_for_status_409() {
+        Response response = new Response(409, "Something", "{ \"value\": \"bar\" }", headers);
+        response.raise_for_status();
     }
 
     class Foo {

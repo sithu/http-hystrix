@@ -29,6 +29,11 @@ public class ClientTest {
     }
 
     @Test
+    public void privateAuthPlus() throws Exception {
+        assertNotNull(client.privateAuthPlus("appId", "appSecret"));
+    }
+
+    @Test
     public void customAuth() throws Exception {
         assertNotNull(client.customAuth((x) -> "my-auth-impl"));
     }

@@ -8,6 +8,7 @@ package com.intuit.payments.http;
 import com.intuit.payments.http.auth.AuthInterface;
 import com.intuit.payments.http.auth.HttpBasic;
 import com.intuit.payments.http.auth.PrivateAuth;
+import com.intuit.payments.http.auth.PrivateAuthPlus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,6 +83,20 @@ public class Client {
      */
     public Client privateAuth(String appId, String appSecret) {
         authInterface = new PrivateAuth(appId, appSecret);
+        return this;
+    }
+
+    /**
+     * Enables IAM Private Auth Plus, but set app id and app secret for now.
+     *
+     * NOTE: Each request must call withPrivateAuthPlus() before execute()
+     *
+     * @param appId - a client appId string.
+     * @param appSecret - a client appSecret string.
+     * @return {@link Client} instance.
+     */
+    public Client privateAuthPlus(String appId, String appSecret) {
+        authInterface = new PrivateAuthPlus(appId, appSecret);
         return this;
     }
 
