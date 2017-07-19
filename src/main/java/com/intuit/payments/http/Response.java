@@ -135,6 +135,7 @@ public class Response {
             return;
         }
         String err = "Server returned Http " + statusCode() + "-" + statusReason();
+        LOG.warn("status_code={};failed_response_body={}", statusCode(), rawString());
         switch (statusCode()) {
             case 400: throw new HCBadRequestException(err);
             case 401: throw new HCUnauthorizedException(err);
