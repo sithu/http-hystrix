@@ -342,7 +342,10 @@ public class Request extends HystrixCommand<Response> {
             String statusReason = httpResponse.getStatusLine().getReasonPhrase();
             logStr.append(";status=").append(statusCode).append(";reason=").append(statusReason);
 
-            String responseStr = EntityUtils.toString(httpResponse.getEntity(), "UTF-8");
+            String responseStr = "";
+            if(httpResponse.getEntity() != null) {
+                responseStr = EntityUtils.toString(httpResponse.getEntity(), "UTF-8");
+            }
             if (LOG.isTraceEnabled()) {
                 logStr.append(";request_headers=");
                 for (Header header : httpUriRequest.getAllHeaders()) {
