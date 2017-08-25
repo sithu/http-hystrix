@@ -217,7 +217,7 @@ public class Request extends HystrixCommand<Response> {
     }
 
     /**
-     * Sets the HttpVerb PUT method.
+     * Sets the Http verb PUT method.
      *
      * @return {@link Request} instance.
      */
@@ -227,7 +227,17 @@ public class Request extends HystrixCommand<Response> {
     }
 
     /**
-     * Sets the HttpVerb DELETE method.
+     * Sets the Http verb PATCH method.
+     *
+     * @return {@link Request} instance.
+     */
+    public Request PATCH() {
+        httpVerb = HttpVerb.PATCH;
+        return this;
+    }
+
+    /**
+     * Sets the Http verb DELETE method.
      *
      * @return {@link Request} instance.
      */
@@ -237,7 +247,7 @@ public class Request extends HystrixCommand<Response> {
     }
 
     /**
-     * Sets the HttpVerb HEAD method.
+     * Sets the Http verb HEAD method.
      *
      * @return {@link Request} instance.
      */
