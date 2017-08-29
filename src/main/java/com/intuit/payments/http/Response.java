@@ -129,10 +129,11 @@ public class Response {
 
     /**
      * Raise a {@link HCException} for any Http response code > 299.
+     * @return this instance if the status code is less than 300; otherwise, throws a HC Exception.
      */
-    public void raise_for_status() {
+    public Response raise_for_status() {
         if (statusCode() < 300) {
-            return;
+            return this;
         }
         String err = "Server returned Http " + statusCode() + "-" + statusReason();
         LOG.warn("status_code={};failed_response_body={}", statusCode(), rawString());
