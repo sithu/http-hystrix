@@ -50,7 +50,8 @@ public class Response {
         this.statusCode = statusCode;
         this.statusReason = statusReason;
         this.rawString = rawString;
-        this.headers = Stream.of(headers).collect(Collectors.toMap(Header::getName, Header::getValue));
+        /** (p1, p2) -> p1 to remove duplicate keys */
+        this.headers = Stream.of(headers).collect(Collectors.toMap(Header::getName, Header::getValue, (p1, p2) -> p1));
     }
 
     /**
