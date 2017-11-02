@@ -151,7 +151,7 @@ public class Request extends HystrixCommand<Response> {
         this.socketTimeout = socketTimeoutInMilliSec;
         this.connectionTimeout = connectionTimeoutInMilliSec;
         this.connectionManager.setValidateAfterInactivity(DEFAULT_CONNECTION_POOL_VALIDATE_AFTER_INACTIVITY);
-        this.logStr.append("http=").append(httpVerb).append(";outURL=").append(url);
+        this.logStr.append("outURL=").append(url);
     }
 
     /**
@@ -341,6 +341,7 @@ public class Request extends HystrixCommand<Response> {
     @Override
     @SuppressWarnings("unchecked")
     protected Response run() throws Exception {
+        logStr.append(";http=").append(httpVerb);
         try(CloseableHttpClient httpClient = HttpClients.custom().useSystemProperties()
                 .setConnectionManager(connectionManager).build()) {
             HttpUriRequest httpUriRequest = newHttpRequest();
