@@ -67,7 +67,7 @@ public class ClientTest {
         assertNotNull(request);
         assertEquals("GetCmd", request.getCommandKey().name());
         assertEquals("HttpGroup", request.getCommandGroup().name());
-        request = client.withPrivateAuthPlus(request, "ticket-v1-123", "111");
+        request = client.withAuthHeader(request, "ticket-v1-123", "111");
         assertNotNull(request);
     }
 }

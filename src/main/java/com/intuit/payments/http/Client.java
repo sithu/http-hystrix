@@ -163,26 +163,14 @@ public class Client {
     }
 
     /**
-     * Creates new Request instance using Private Auth Plus Authorization.
+     * Sets the Http authorization header in a given Request instance.
      *
-     * @param request - a Request instance.
-     * @param ticket - IAM session ticket.
-     * @param userId - IAM user id.
+     * @param request - A Request instance.
+     * @param ticket - Optional IAM session ticket for PA+ or super long offline ticket.
+     * @param userId - Optional IAM user id for PA+.
      * @return a Request instance.
      */
-    public Request withPrivateAuthPlus(Request request, String ticket, String userId) {
+    public Request withAuthHeader(Request request, String ticket, String userId) {
         return request.header(AUTHORIZATION, authInterface.getAuthHeader(ticket, userId));
-    }
-
-    /**
-     * Adds the offline ticket's 'Authorization' header to the given request instance.
-     *
-     * @param request - a Request instance.
-     * @param offlineTicket -  an offline ticket.
-     * @return a Request instance.
-     */
-    public Request withOfflineTicket(Request request, String offlineTicket) {
-        return request.header(AUTHORIZATION, authInterface.getAuthHeader(offlineTicket));
-
     }
 }

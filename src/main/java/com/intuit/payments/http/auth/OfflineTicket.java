@@ -59,7 +59,7 @@ public class OfflineTicket implements AuthInterface {
         if (preRequestParams != null && preRequestParams.length == 1) {
             return iamAuth + ",intuit_token=" + preRequestParams[0];
         } else {
-            return iamAuth;
+            throw new IllegalArgumentException("The offline ticket argument was missing!");
         }
     }
 }
