@@ -58,8 +58,7 @@ public class OfflineTicket implements AuthInterface {
     public String getAuthHeader(String... preRequestParams) {
         if (preRequestParams != null && preRequestParams.length >= 1) {
             return iamAuth + ",intuit_token=" + preRequestParams[0];
-        } else {
-            throw new IllegalArgumentException("The offline ticket argument was missing!");
         }
+        return iamAuth;
     }
 }
