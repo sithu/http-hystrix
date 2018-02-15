@@ -34,6 +34,11 @@ public class ClientTest {
     }
 
     @Test
+    public void offlineTicket() throws Exception {
+        assertNotNull(client.offlineTicket("appId", "appSecret"));
+    }
+
+    @Test
     public void customAuth() throws Exception {
         assertNotNull(client.customAuth((x) -> "my-auth-impl"));
     }

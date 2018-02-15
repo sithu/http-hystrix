@@ -12,7 +12,7 @@ import java.util.Map;
 
 import static java.lang.String.format;
 /**
- * IUS Client to generate IAM ticket using username and password.
+ * IUS Client to generate IAM ticket and offline ticket using username and password.
  *
  * @author saung
  * @since 10/16/17
@@ -48,6 +48,24 @@ public class IUSClient {
         String body = format("{\"username\": \"%s\",\"password\" : \"%s\"}", username, password);
 
         Response response = client.Request("GenerateIAMTicketCmd","IUSGroup","/v1/iamtickets/sign_in")
+                .POST()
+                .header("intuit_originatingip", "123.45.67.89")
+                .bodyStr(body)
+                .execute().raise_for_status();
+        return response.map();
+    }
+
+    /**
+     * Generates an offline ticket from IUS.
+     *
+     * @param username - IAM username.
+     * @param password - IAM password.
+     * @return Map of IUS offline ticket response.
+     */
+    public Map<String, ?> generateOfflineTicket(String username, String password) {
+        String body = format("{\"username\": \"%s\",\"password\" : \"%s\"}", username, password);
+
+        Response response = client.Request("GenerateOfflineTicketCmd","IUSGroup","/v1/offline_tickets/create_for_system_user")
                 .POST()
                 .header("intuit_originatingip", "123.45.67.89")
                 .bodyStr(body)
