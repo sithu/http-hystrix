@@ -173,4 +173,16 @@ public class Client {
     public Request withPrivateAuthPlus(Request request, String ticket, String userId) {
         return request.header(AUTHORIZATION, authInterface.getAuthHeader(ticket, userId));
     }
+
+    /**
+     * Adds the offline ticket's 'Authorization' header to the given request instance.
+     *
+     * @param request - a Request instance.
+     * @param offlineTicket -  an offline ticket.
+     * @return a Request instance.
+     */
+    public Request withOfflineTicket(Request request, String offlineTicket) {
+        return request.header(AUTHORIZATION, authInterface.getAuthHeader(offlineTicket));
+
+    }
 }

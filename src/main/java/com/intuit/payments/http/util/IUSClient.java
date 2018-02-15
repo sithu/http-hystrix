@@ -61,6 +61,8 @@ public class IUSClient {
      * @param username - IAM username.
      * @param password - IAM password.
      * @return Map of IUS offline ticket response.
+     *
+     * Response Example: {"offlineTicket":"SUPER_LONG_STRING"}
      */
     public Map<String, ?> generateOfflineTicket(String username, String password) {
         String body = format("{\"username\": \"%s\",\"password\" : \"%s\"}", username, password);
