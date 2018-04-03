@@ -129,9 +129,9 @@ public class IUSClient {
     public Map<String, ?> addPersonaToOfflineTicket(String assetIdHeader, String offeringIdHeader,
                                                        String targetRealmId, String offlineTicket) {
         String body = format("{" +
-                "\"offlineTicket\": \"%s\"," +
-                "\"targetRealmId\" : \"%s\"," +
-                "}", offlineTicket, targetRealmId);
+                        " \"offlineTicket\": \"%s\"," +
+                        "\"targetRealmId\" : \"%s\"}",
+                offlineTicket, targetRealmId);
         Response response = client.Request("GenerateSysUserOfflineTicketCmd","IUSGroup","/v1/offline_tickets/assume_persona")
                 .POST()
                 .header("intuit_originatingip", "123.45.67.89")
