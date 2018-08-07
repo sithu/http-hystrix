@@ -3,7 +3,7 @@ apply plugin: 'eclipse'
 apply plugin: 'idea'
 
 apply plugin: 'maven-publish'
-// apply plugin: 'maven-publish-auth' // pull auth credentials from settings.xml
+apply plugin: 'maven-publish-auth' // pull auth credentials from settings.xml
 
 apply from: 'dynamicVersion.gradle'
 

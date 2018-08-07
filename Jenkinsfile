@@ -12,7 +12,7 @@ podTemplate(label: 'java-8', containers: [
             def scmInto = checkout([$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-svc-sbseg-ci', url: 'https://github.intuit.com/payments/http-hystrix.git']]])
             container('maven') {
                 stage('Build jar') {
-                    withCredentials([file(credentialsId: '', variable: 'QBO_NEXUS_SETTINGS')]) {
+                    withCredentials([file(credentialsId: 'qbo-settings.xml', variable: 'QBO_NEXUS_SETTINGS')]) {
                         sh "./gradlew -Pmaven.settings.location=$QBO_NEXUS_SETTINGS/settings.xml clean build publish"
                     }
                 }
