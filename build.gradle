@@ -13,6 +13,13 @@ buildscript {
     dependencies {
         classpath("org.hibernate.build.gradle:gradle-maven-publish-auth:2.0.1")
     }
+    repositories {
+        maven {
+            url "http://nexus.intuit.net/nexus/content/groups/public/"
+        }
+        mavenLocal()
+        mavenCentral()
+    }
 }
 
 jar {
