@@ -9,7 +9,7 @@ podTemplate(label: 'java-8', containers: [
     node('java-8') {
         
         stage('Build') {
-            git branch: 'master', url: 'https://github.intuit.com/payments/http-hystrix.git', credentialsId: "76335430-4b82-4e09-bc41-01386a76ea23"
+            git branch: 'master', url: 'https://github.intuit.com/payments/http-hystrix.git', credentialsId: "github-svc-sbseg-ci"
             container('maven') {
                 stage('Build jar') {
                     sh './gradlew clean build'
