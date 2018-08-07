@@ -13,7 +13,7 @@ podTemplate(label: 'java-8', containers: [
             container('maven') {
                 stage('Build jar') {
                     withCredentials([file(credentialsId: 'qbo-settings.xml', variable: 'QBO_NEXUS_SETTINGS')]) {
-                        sh "./gradlew -Pmaven.settings.location=$QBO_NEXUS_SETTINGS/settings.xml clean build publish"
+                        sh "./gradlew -i -Dmaven.settings=$QBO_NEXUS_SETTINGS clean build publish"
                     }
                 }
             }
