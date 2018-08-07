@@ -49,7 +49,7 @@ publishing {
 
     // PubRepoConfigator comes from our qbms-ops custom gradle distribution
     // in an init.d file
-    repositories(PubRepoConfigator)
+    // repositories(PubRepoConfigator)
 
     publications {
         mavenJava(MavenPublication) {
