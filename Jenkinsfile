@@ -9,12 +9,14 @@ podTemplate(label: 'java-8', containers: [
     node('java-8') {
         
         stage('Build') {
-            git branch: 'master', url: 'https://github.intuit.com/payments/http-hystrix.git', credentialsId: "github-svc-sbseg-ci"
+            def scmInto = checkout([$class: 'GitSCM', branches: [[name: 'master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-svc-sbseg-ci', url: 'https://github.intuit.com/payments/http-hystrix.git']]])
             container('maven') {
                 stage('Build jar') {
-                    sh './gradlew clean build'
+                    withCredentials([file(credentialsId: '', variable: 'QBO_NEXUS_SETTINGS')]) {
+                        sh "./gradlew -Pmaven.settings.location=$QBO_NEXUS_SETTINGS/settings.xml clean build publish"
+                    }
                 }
             }
-        }  
+        }
     }
 }
