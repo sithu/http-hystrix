@@ -13,7 +13,8 @@ println "Release system env value: " + System.getenv('release')
 // line, then append "-SNAPSHOT" to the version
 if (!System.getenv('release')) {
 	println "Release not called..."
-    version += "-SNAPSHOT"      
+// FIXME
+//    version += "-SNAPSHOT"      
 }
 
 /*
