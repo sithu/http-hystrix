@@ -49,22 +49,25 @@ publishing {
 
     // PubRepoConfigator comes from our qbms-ops custom gradle distribution
     // in an init.d file
-    repositories(PubRepoConfigator)
-
-    publications {
-        mavenJava(MavenPublication) {
-            artifact jar
-        }
-    }
+    // repositories(PubRepoConfigator)
     repositories {
         maven {
+            name = 'nexus-deploy'
+            
             if(project.version.endsWith('-SNAPSHOT')) {
                 url "http://nexus.intuit.net/nexus/content/repositories/SBG.QBO.Intuit-Snapshots"
             } else {
                 url "http://nexus.intuit.net/nexus/content/repositories/SBG.QBO.Intuit-Releases"
             }
         }
-     }
+    }
+
+    publications {
+        mavenJava(MavenPublication) {
+            artifact jar
+        }
+    }
+    
 }
 
 task uberJar(type: Jar) {
