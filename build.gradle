@@ -54,7 +54,7 @@ publishing {
         maven {
             name = 'nexus-deploy'
             println("###### Debug #######")
-            println(project.nexusUsername)
+            println(project)
             if(project.version.endsWith('-SNAPSHOT')) {
                 url "http://nexus.intuit.net/nexus/content/repositories/SBG.QBO.Intuit-Snapshots"
             } else {
