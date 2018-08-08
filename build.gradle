@@ -52,12 +52,13 @@ publishing {
     // repositories(PubRepoConfigator)
     repositories {
         maven {
-            name = 'nexus-deploy'
             println("###### Debug #######")
             println(project)
             if(project.version.endsWith('-SNAPSHOT')) {
+                name = 'snapshots'
                 url "http://nexus.intuit.net/nexus/content/repositories/SBG.QBO.Intuit-Snapshots"
             } else {
+                name = 'releases'
                 url "http://nexus.intuit.net/nexus/content/repositories/SBG.QBO.Intuit-Releases"
             }
         }
