@@ -121,12 +121,48 @@ public class Request extends HystrixCommand<Response> {
     private StringBuilder logStr = new StringBuilder("type=http_hystrix;");
 
     /**
-     * Non-positive value passed to this method disables connection validation.
+     * Connection pool manager instance.
      */
-    private final PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+    private final PoolingHttpClientConnectionManager connectionManager;
 
     /**
-     * Default constructor
+     * A constructor that takes a custom {@PoolingHttpClientConnectionManager} instance.
+     * Package-level access only.
+     *
+     * @param connectionManager - Http client Connection Pool Manager instance.
+     * @param url - URL to be called.
+     * @param hystrixCommandName - Hystrix command name.
+     * @param hystrixGroupName - Hystrix command group name.
+     * @param connectionTimeoutInMilliSec - Time to wait to get a connection.
+     * @param socketTimeoutInMilliSec - Time to wait to send a request and receive a response.
+     *
+     * Hystrix Timeout = (Connection Timeout + Socket Timeout) + 10 milliseconds buffer.
+     */
+    Request(
+            PoolingHttpClientConnectionManager connectionManager,
+            String url,
+            String hystrixCommandName,
+            String hystrixGroupName,
+            int connectionTimeoutInMilliSec,
+            int socketTimeoutInMilliSec) {
+        super(Setter.withGroupKey(HystrixCommandGroupKey.Factory
+                .asKey(hystrixGroupName))
+                .andCommandKey(HystrixCommandKey.Factory.asKey(hystrixCommandName))
+                .andCommandPropertiesDefaults(Setter()
+                        .withExecutionTimeoutInMilliseconds(connectionTimeoutInMilliSec + socketTimeoutInMilliSec
+                        + TIMEOUT_BUFFER_BETWEEN_HTTP_CLEINT_AND_HYSTRIX)));
+        if (connectionManager == null) {
+            throw new IllegalArgumentException("connectionManager must not be NULL");
+        }
+        this.connectionManager = connectionManager;
+        this.url = url;
+        this.socketTimeout = socketTimeoutInMilliSec;
+        this.connectionTimeout = connectionTimeoutInMilliSec;
+        this.logStr.append("outURL=").append(url);
+    }
+
+    /**
+     * Default constructor for per-request Http client config without any connection pooling.s
      *
      * @param url - URL to be called.
      * @param hystrixCommandName - Hystrix command name.
@@ -136,21 +172,23 @@ public class Request extends HystrixCommand<Response> {
      *
      * Hystrix Timeout = (Connection Timeout + Socket Timeout) + 10 milliseconds buffer.
      */
-    public Request(String url,
-                   String hystrixCommandName,
-                   String hystrixGroupName,
-                   int connectionTimeoutInMilliSec,
-                   int socketTimeoutInMilliSec) {
+    public Request(
+            String url,
+            String hystrixCommandName,
+            String hystrixGroupName,
+            int connectionTimeoutInMilliSec,
+            int socketTimeoutInMilliSec) {
         super(Setter.withGroupKey(HystrixCommandGroupKey.Factory
                 .asKey(hystrixGroupName))
                 .andCommandKey(HystrixCommandKey.Factory.asKey(hystrixCommandName))
                 .andCommandPropertiesDefaults(Setter()
                         .withExecutionTimeoutInMilliseconds(connectionTimeoutInMilliSec + socketTimeoutInMilliSec
-                        + TIMEOUT_BUFFER_BETWEEN_HTTP_CLEINT_AND_HYSTRIX)));
+                                + TIMEOUT_BUFFER_BETWEEN_HTTP_CLEINT_AND_HYSTRIX)));
+        this.connectionManager = new PoolingHttpClientConnectionManager();
+        this.connectionManager.setValidateAfterInactivity(DEFAULT_CONNECTION_POOL_VALIDATE_AFTER_INACTIVITY);
         this.url = url;
         this.socketTimeout = socketTimeoutInMilliSec;
         this.connectionTimeout = connectionTimeoutInMilliSec;
-        this.connectionManager.setValidateAfterInactivity(DEFAULT_CONNECTION_POOL_VALIDATE_AFTER_INACTIVITY);
         this.logStr.append("outURL=").append(url);
     }
 
@@ -313,20 +351,6 @@ public class Request extends HystrixCommand<Response> {
      */
     public Request throwExceptionIfResponseCodeIsGreaterThanOrEqual(int failedStatusCode) {
         this.failedStatusCode = failedStatusCode;
-        return this;
-    }
-
-    /**
-     * Defines period of inactivity in milliseconds after which persistent connections
-     * must be re-validated prior to being leased to the consumer.
-     * Non-positive value passed to this method disables connection validation.
-     * This check helps detect connections that have become stale (half-closed) while kept inactive in the pool.
-     *
-     * @param milliseconds - inactivity in milliseconds to revalidate the connection. Default is 1 min.
-     * @return {@link Request} instance.
-     */
-    public Request validateConnectionAfterInactivity(int milliseconds) {
-        this.connectionManager.setValidateAfterInactivity(milliseconds);
         return this;
     }
 

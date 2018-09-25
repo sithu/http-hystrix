@@ -19,18 +19,18 @@ public class RequestIT {
 
     @Test
     public void test() throws Exception {
-        Request request = new Request(
-                "http://httpbin.org/headers",
+        Client client = new Client("http://httpbin.org/headers");
+        client.maxConcurrentConnection(4);
+        client.validateConnectionAfterInactivity(60000);
+        Request request = client.Request(
                 "TestCmd",
                 "TestGroup",
-                10000,
-                10000).GET();
+                "").GET();
 
         request.headers(new HashMap<String, String>() {{
             put("X-Header", "x-value");
             put("Accept", "text/html");
         }});
-        request.validateConnectionAfterInactivity(60000);
 
         Response response = request.run();
         assertNotNull(response);
@@ -44,12 +44,11 @@ public class RequestIT {
 
     @Test(expected = RuntimeException.class)
     public void test_FailedHttpStatusCode() throws Exception {
-        Request request = new Request(
-                "http://httpbin.org/ip",
+        Client client = new Client("http://httpbin.org/ip");
+        client.maxConcurrentConnection(1);
+        Request request = client.Request(
                 "TestCmd",
-                "TestGroup",
-                10000,
-                10000).GET().throwExceptionIfResponseCodeIsGreaterThanOrEqual(200); // Forces to throw RuntimeException even with 200.
+                "TestGroup", "").GET().throwExceptionIfResponseCodeIsGreaterThanOrEqual(200); // Forces to throw RuntimeException even with 200.
 
         request.headers(new HashMap<String, String>() {{
             put("x-header", "x-value");

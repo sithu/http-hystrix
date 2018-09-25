@@ -24,7 +24,7 @@ java -jar build/libs/hc-all-0.1.1-SNAPSHOT.jar
 ##### Gradle
 ```groovy
 dependencies {
-    compile 'com.intuit.payments.http:hc:1.0.4'
+    compile 'com.intuit.payments.http:hc:1.0.8'
     // add HC's dependencies
     compile 'com.netflix.hystrix:hystrix-core:1.5.3'
     compile 'com.google.code.gson:gson:2.3.1'
@@ -37,7 +37,7 @@ dependencies {
    <dependency>
       <groupId>com.intuit.payments.http</groupId>
       <artifactId>hc</artifactId>
-      <version>1.0.4</version>
+      <version>1.0.8</version>
       <scope>compile</scope>
    </dependency>
    <!-- Dependencies -->
