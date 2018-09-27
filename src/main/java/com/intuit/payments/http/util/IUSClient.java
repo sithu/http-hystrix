@@ -34,6 +34,19 @@ public class IUSClient {
     }
 
     /**
+     * Sets a maximum limit of concurrent connection on a per route to be cached in the
+     * {@ClientConnectionPoolManager} pool.
+     *
+     * @param maxNumConnection -  Maximum number of connection per route in pool.
+     *                         Default is 2 concurrent connections per route.
+     * @return {@link Client} instance.
+     */
+    public IUSClient maxConcurrentConnection(int maxNumConnection) {
+        client.maxConcurrentConnection(maxNumConnection);
+        return this;
+    }
+
+    /**
      * Generates IAM ticket from IUS for a given account.
      * Sample Request:
      * {"username": "foo@bar.com","password" : "test1234"}
