@@ -20,6 +20,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.pool.PoolStats;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -358,6 +359,8 @@ public class Request extends HystrixCommand<Response> {
      * Executes a POST call and set the response details in the response map.
      *
      * NOTE: useSystemProperties() will read JVM arguments like -Dhttp.proxyHost=10.0.0.1
+     * In version 4.4 the method setConnectionManagerShared was added to HttpClientBuilder.
+     * If you set it to true the client won't close the connection manager.
      *
      * @return Response Map.
      * @throws Exception if either HttpVerb client call failed or parsing to JSON failed.
@@ -367,7 +370,16 @@ public class Request extends HystrixCommand<Response> {
     protected Response run() throws Exception {
         logStr.append(";http=").append(httpVerb);
         try(CloseableHttpClient httpClient = HttpClients.custom().useSystemProperties()
-                .setConnectionManager(connectionManager).build()) {
+                .setConnectionManager(connectionManager)
+                .setConnectionManagerShared(true).build()) {
+            if (LOG.isDebugEnabled()) {
+                PoolStats stats = connectionManager.getTotalStats();
+                logStr.append(";pool_max=").append(connectionManager.getMaxTotal())
+                        .append(";pool_max_per_route=").append(connectionManager.getDefaultMaxPerRoute())
+                        .append(";pool_available=").append(stats.getAvailable())
+                        .append(";pool_leased=").append(stats.getLeased())
+                        .append(";pool_pending=").append(stats.getPending());
+            }
             HttpUriRequest httpUriRequest = newHttpRequest();
             setRequestHeaders(httpUriRequest);
 
@@ -404,10 +416,10 @@ public class Request extends HystrixCommand<Response> {
 
             return new Response(statusCode, statusReason, responseStr, httpResponse.getAllHeaders());
         } catch (SocketTimeoutException stoEx) {
-            LOG.error(logStr.append("No data package received in " + socketTimeout + "ms.").toString(), stoEx);
+            LOG.error(logStr.append(";ex=No_data_received_in:" + socketTimeout + "ms").toString(), stoEx);
             throw new HystrixTimeoutException();
         } catch (Exception ex) {
-            LOG.error(logStr.append("Unknown exception=" + ex.getMessage()).toString(), ex);
+            LOG.error(logStr.append(";ex=Unknown_exception:" + ex.getMessage()).toString(), ex);
             throw ex;
         }
     }
