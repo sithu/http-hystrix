@@ -143,6 +143,7 @@ public class Response {
             case 401: throw new HCUnauthorizedException(err);
             case 403: throw new HCForbiddenException(err);
             case 404: throw new HCResourceNotFoundException(err);
+            case 409: throw new HCConflictException(err);
             default: throw new HCException(err);
         }
     }
