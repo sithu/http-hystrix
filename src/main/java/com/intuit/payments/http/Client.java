@@ -6,9 +6,15 @@
 package com.intuit.payments.http;
 
 import com.intuit.payments.http.auth.*;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLContext;
 
 import static com.intuit.payments.http.util.Util.checkStringIsNotBlank;
 import static com.intuit.payments.http.util.Util.getFullURL;
@@ -32,7 +38,7 @@ public class Client {
     /**
      * Http client connection pool manager instance.
      */
-    private final PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+    private final PoolingHttpClientConnectionManager connectionManager;
 
     /**
      * Default period of inactivity in milliseconds after which persistent connections must be re-validated.
@@ -58,6 +64,16 @@ public class Client {
      * @param serverBaseUrl - a target host URL string.
      */
     public Client(String serverBaseUrl) {
+        this(serverBaseUrl, null);
+    }
+
+    /**
+     * constructor with url and custom sslContext
+     *
+     * @param serverBaseUrl - a target host URL string.
+     * @oaram sslContext - sslContext for certificate setup
+     */
+    public Client(String serverBaseUrl, SSLContext sslContext) {
         checkStringIsNotBlank(serverBaseUrl, "serverBaseUrl must not be null or empty");
         this.serverBaseUrl = serverBaseUrl;
         /** Default is no auth! */
@@ -67,10 +83,12 @@ public class Client {
 
         /** Default 60 seconds timeout to receive individual packets */
         this.socketTimeoutInMilliSec = 60000;
-
+        boolean isSSLContextNull = null == sslContext;
+        this.connectionManager = isSSLContextNull ?
+                new PoolingHttpClientConnectionManager() : new PoolingHttpClientConnectionManager(getRegistryBuilder(sslContext));
         this.connectionManager.setValidateAfterInactivity(DEFAULT_CONNECTION_POOL_VALIDATE_AFTER_INACTIVITY);
-        log.info("type=init;".concat("host={};default_conn_timeout={};default_socket_timeout={}"),
-                this.serverBaseUrl, this.connectionTimeoutInMilliSec, this.socketTimeoutInMilliSec);
+        log.info("type=init;".concat("host={};isSSLContextNull={};default_conn_timeout={};default_socket_timeout={}"),
+                this.serverBaseUrl, isSSLContextNull, this.connectionTimeoutInMilliSec, this.socketTimeoutInMilliSec);
     }
 
     /**
@@ -194,12 +212,12 @@ public class Client {
     public Request Request(String endpointName, String endpointGroup,
                            String urlPath, Object... urlPathValues) {
         return new Request(connectionManager,
-            getFullURL(serverBaseUrl, urlPath, urlPathValues),
-            endpointName,
-            endpointGroup,
-            connectionTimeoutInMilliSec,
-            socketTimeoutInMilliSec)
-            .header(AUTHORIZATION, authInterface.getAuthHeader());
+                getFullURL(serverBaseUrl, urlPath, urlPathValues),
+                endpointName,
+                endpointGroup,
+                connectionTimeoutInMilliSec,
+                socketTimeoutInMilliSec)
+                .header(AUTHORIZATION, authInterface.getAuthHeader());
     }
 
     /**
@@ -212,5 +230,18 @@ public class Client {
      */
     public Request withAuthHeader(Request request, String ticket, String userId) {
         return request.header(AUTHORIZATION, authInterface.getAuthHeader(ticket, userId));
+    }
+
+    /**
+     * Build registry for sslContext
+     * @param sslContext
+     * @return Register with SSLConnectionSocketFactory
+     */
+    public Registry<ConnectionSocketFactory> getRegistryBuilder (SSLContext sslContext) {
+        Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder
+                .<ConnectionSocketFactory> create()
+                .register("https", new SSLConnectionSocketFactory(sslContext))
+                .build();
+        return socketFactoryRegistry;
     }
 }
