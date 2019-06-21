@@ -89,4 +89,4 @@ Response response = client.Request("PostCommand", "HttpGroup","/posts")
 ```
 
 
-### [Jenkins Build](https://qbmsjenkins.payments.intuit.net/job/http-hystrix-commit/) 
+### [Jenkins Build](https://build.intuit.com/payments/blue/organizations/jenkins/payments%2Fhttp-hystrix%2Fhttp-hystrix/activity) 
